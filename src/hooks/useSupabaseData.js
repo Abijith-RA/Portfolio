@@ -102,11 +102,11 @@ export function useSupabaseData() {
     try {
       let profileData = null;
 
-      // 1. Fetch Profile (support 'profile' or 'profiles' table)
-      const profileRes = await supabase.from('profile').select('*').limit(1);
+      // 1. Fetch Profile (support 'profile' or 'profiles' table, latest row first)
+      const profileRes = await supabase.from('profile').select('*').order('id', { ascending: false }).limit(1);
       if (profileRes.error) {
         console.warn("Supabase fetch 'profile' error:", profileRes.error);
-        const profilesRes = await supabase.from('profiles').select('*').limit(1);
+        const profilesRes = await supabase.from('profiles').select('*').order('id', { ascending: false }).limit(1);
         if (!profilesRes.error && profilesRes.data && profilesRes.data.length > 0) {
           profileData = profilesRes.data[0];
         }
