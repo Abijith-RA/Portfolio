@@ -19,6 +19,7 @@ function normalizeProfile(raw) {
     bio: raw.bio || raw.about || raw.description || raw.summary || '',
     location: raw.location || raw.address || raw.city || '',
     email: raw.email || raw.contact_email || '',
+    phone: raw.phone || raw.mobile || raw.phone_number || raw.contact_number || '',
     github: raw.github || raw.github_url || '',
     linkedin: raw.linkedin || raw.linkedin_url || '',
     kaggle: raw.kaggle || raw.kaggle_url || '',

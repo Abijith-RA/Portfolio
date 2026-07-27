@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Send, CheckCircle2, AlertCircle, Mail, MapPin, MessageSquare } from 'lucide-react';
+import { Send, CheckCircle2, AlertCircle, Mail, MapPin, MessageSquare, Phone } from 'lucide-react';
 import SectionWrapper from './SectionWrapper';
 import { useInteractiveText } from '../hooks/useInteractiveText';
 import { use3DTiltCard } from '../hooks/use3DTiltCard';
@@ -139,26 +139,36 @@ function ContactInfoCardWithTilt({ profile }) {
       </p>
 
       <div className="contact-details">
-        {profile?.email && (
-          <div className="detail-item">
-            <MagneticIcon>
-              <Mail size={18} />
-            </MagneticIcon>
-            <div className="detail-text-content">
-              <span className="detail-label">Email</span>
-              <a href={`mailto:${profile.email}`} className="detail-value">{profile.email}</a>
-            </div>
+        <div className="detail-item">
+          <MagneticIcon>
+            <Mail size={18} />
+          </MagneticIcon>
+          <div className="detail-text-content">
+            <span className="detail-label">Email</span>
+            <a href={`mailto:${profile?.email || 'Abijithra2004@gmail.com'}`} className="detail-value">
+              {profile?.email || 'Abijithra2004@gmail.com'}
+            </a>
           </div>
-        )}
+        </div>
 
-        {profile?.location && (
+        <div className="detail-item">
+          <MagneticIcon>
+            <MapPin size={18} />
+          </MagneticIcon>
+          <div className="detail-text-content">
+            <span className="detail-label">Location</span>
+            <span className="detail-value">{profile?.location || 'KERALA, INDIA'}</span>
+          </div>
+        </div>
+
+        {profile?.phone && (
           <div className="detail-item">
             <MagneticIcon>
-              <MapPin size={18} />
+              <Phone size={18} />
             </MagneticIcon>
             <div className="detail-text-content">
-              <span className="detail-label">Location</span>
-              <span className="detail-value">{profile.location}</span>
+              <span className="detail-label">Phone</span>
+              <a href={`tel:${profile.phone}`} className="detail-value">{profile.phone}</a>
             </div>
           </div>
         )}
