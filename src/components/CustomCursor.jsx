@@ -9,11 +9,10 @@
  * ==============================================================================
  */
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 
 export default function CustomCursor() {
   const haloRef = useRef(null);
-  const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
     if (typeof window === 'undefined' || typeof document === 'undefined') return;
@@ -23,22 +22,34 @@ export default function CustomCursor() {
       return;
     }
 
-    let mouseX = window.innerWidth / 2;
-    let mouseY = window.innerHeight / 2;
-    let haloX = mouseX;
-    let haloY = mouseY;
+    let mouseX = 0;
+    let mouseY = 0;
+    let haloX = 0;
+    let haloY = 0;
+    let hasMoved = false;
     let rafId;
 
     const onMouseMove = (e) => {
-      if (typeof e.clientX === 'number') {
+      if (typeof e.clientX === 'number' && (e.clientX > 0 || e.clientY > 0)) {
         mouseX = e.clientX;
         mouseY = e.clientY;
-        setIsVisible(true);
+
+        if (!hasMoved) {
+          hasMoved = true;
+          haloX = mouseX;
+          haloY = mouseY;
+          if (haloRef.current) {
+            haloRef.current.style.opacity = '1';
+          }
+        }
       }
     };
 
     const onMouseLeave = () => {
-      setIsVisible(false);
+      hasMoved = false;
+      if (haloRef.current) {
+        haloRef.current.style.opacity = '0';
+      }
     };
 
     window.addEventListener('mousemove', onMouseMove, { passive: true });
@@ -64,11 +75,13 @@ export default function CustomCursor() {
 
     // Smooth GPU Lerp Render Loop
     const render = () => {
-      haloX += (mouseX - haloX) * 0.18;
-      haloY += (mouseY - haloY) * 0.18;
+      if (hasMoved) {
+        haloX += (mouseX - haloX) * 0.2;
+        haloY += (mouseY - haloY) * 0.2;
 
-      if (haloRef.current) {
-        haloRef.current.style.transform = `translate3d(${haloX.toFixed(1)}px, ${haloY.toFixed(1)}px, 0px) translate(-50%, -50%)`;
+        if (haloRef.current) {
+          haloRef.current.style.transform = `translate3d(${haloX.toFixed(1)}px, ${haloY.toFixed(1)}px, 0px) translate(-50%, -50%)`;
+        }
       }
 
       rafId = requestAnimationFrame(render);
@@ -101,8 +114,8 @@ export default function CustomCursor() {
         pointerEvents: 'none',
         zIndex: 99999,
         willChange: 'transform, opacity',
-        opacity: isVisible ? 1 : 0,
-        transition: 'opacity 0.2s ease-out, width 0.25s ease-out, height 0.25s ease-out, border-color 0.25s ease-out, background 0.25s ease-out',
+        opacity: 0,
+        transition: 'opacity 0.25s ease-out, width 0.25s ease-out, height 0.25s ease-out, border-color 0.25s ease-out, background 0.25s ease-out',
       }}
     />
   );
