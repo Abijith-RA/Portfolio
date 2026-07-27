@@ -37,7 +37,7 @@ function normalizeProjects(list) {
         const parsed = JSON.parse(tech_stack);
         tech_stack = Array.isArray(parsed) ? parsed : tech_stack.split(',').map(s => s.trim());
       } catch {
-        tech_stack = tech_stack.split(',').map(s => s.trim()).filter(Boolean);
+        tech_stack = tech_stack.replace(/[{}]/g, '').split(',').map(s => s.trim()).filter(Boolean);
       }
     }
     return {
@@ -59,7 +59,7 @@ function normalizeSkills(list) {
     ...skill,
     name: skill.name || skill.title || skill.skill_name || '',
     category: skill.category || skill.group || 'General',
-    proficiency: Number(skill.proficiency || skill.level || skill.percentage || 80)
+    proficiency: Number(skill.proficiency || skill.level || skill.percentage || 90)
   }));
 }
 
@@ -72,19 +72,6 @@ function normalizeExperience(list) {
     duration: exp.duration || exp.period || exp.years || '',
     location: exp.location || exp.place || '',
     description: exp.description || exp.details || ''
-  }));
-}
-
-function normalizeEducation(list) {
-  if (!Array.isArray(list)) return [];
-  return list.map(edu => ({
-    ...edu,
-    institution: edu.institution || edu.school || edu.university || edu.college || '',
-    degree: edu.degree || edu.qualification || edu.title || '',
-    field_of_study: edu.field_of_study || edu.field || edu.major || edu.specialization || '',
-    start_year: edu.start_year || edu.start_date || edu.from_year || '',
-    end_year: edu.end_year || edu.end_date || edu.to_year || edu.graduation_year || '',
-    description: edu.description || edu.details || edu.notes || ''
   }));
 }
 
@@ -115,28 +102,28 @@ export function useSupabaseData() {
     try {
       let profileData = null;
 
+      // 1. Fetch Profile (support 'profile' or 'profiles' table)
       const profileRes = await supabase.from('profile').select('*').limit(1);
-      if (profileRes.error) {
+      if (!profileRes.error && profileRes.data && profileRes.data.length > 0) {
+        profileData = profileRes.data[0];
+      } else {
         const profilesRes = await supabase.from('profiles').select('*').limit(1);
         if (!profilesRes.error && profilesRes.data && profilesRes.data.length > 0) {
           profileData = profilesRes.data[0];
         }
-      } else if (profileRes.data && profileRes.data.length > 0) {
-        profileData = profileRes.data[0];
       }
 
-      const [projectsRes, skillsRes, experienceRes, educationRes] = await Promise.all([
-        supabase.from('projects').select('*').order('id', { ascending: true }),
-        supabase.from('skills').select('*').order('id', { ascending: true }),
-        supabase.from('experience').select('*').order('id', { ascending: true }),
-        supabase.from('education').select('*').order('id', { ascending: true })
-      ]);
+      // 2. Fetch Projects, Skills, and Experience (gracefully query education if present)
+      const projectsRes = await supabase.from('projects').select('*').order('id', { ascending: true });
+      const skillsRes = await supabase.from('skills').select('*').order('id', { ascending: true });
+      const experienceRes = await supabase.from('experience').select('*').order('id', { ascending: true });
+      const educationRes = await supabase.from('education').select('*').order('id', { ascending: true }).catch(() => ({ data: [] }));
 
       const normProfile = normalizeProfile(profileData);
-      const normProjects = normalizeProjects(projectsRes.data);
-      const normSkills = normalizeSkills(skillsRes.data);
-      const normExperience = normalizeExperience(experienceRes.data);
-      const normEducation = normalizeEducation(educationRes.data);
+      const normProjects = normalizeProjects(projectsRes.data || []);
+      const normSkills = normalizeSkills(skillsRes.data || []);
+      const normExperience = normalizeExperience(experienceRes.data || []);
+      const normEducation = Array.isArray(educationRes?.data) ? educationRes.data : [];
 
       setIsLiveDatabase(true);
 
@@ -151,7 +138,6 @@ export function useSupabaseData() {
       console.error("Supabase fetch exception:", err);
       setIsLiveDatabase(false);
       setErrorDetails(err.message || "Failed to query Supabase.");
-      setData({ profile: null, projects: [], skills: [], experience: [], education: [] });
     } finally {
       setLoading(false);
     }
