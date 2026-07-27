@@ -3,19 +3,19 @@ import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
 
 // Fallback demo data to ensure UI is never blank if database is offline or unconfigured
 const FALLBACK_PROFILE = {
-  name: "Alex Mercer",
-  title: "AI / ML Systems Engineer",
-  bio: "Architecting high-throughput deep learning pipelines, generative AI models, and real-time computer vision applications.",
-  location: "San Francisco, CA",
-  email: "alex.mercer@example.com",
-  github: "https://github.com",
+  name: "Abijith R A",
+  title: "AI / ML Systems Engineer & Developer",
+  bio: "Architecting high-throughput deep learning pipelines, generative AI models, and dynamic web applications.",
+  location: "India",
+  email: "abijithra2004@gmail.com",
+  github: "https://github.com/Abijith-RA",
   linkedin: "https://linkedin.com",
   twitter: "https://x.com",
   stats: [
-    { label: "Models Deployed", value: "25+" },
-    { label: "Research Papers", value: "8" },
-    { label: "GitHub Stars", value: "1.2k" },
-    { label: "Years Exp.", value: "6+" }
+    { label: "Projects Built", value: "15+" },
+    { label: "Core Proficiencies", value: "10+" },
+    { label: "GitHub Repos", value: "20+" },
+    { label: "Experience", value: "Active" }
   ]
 };
 
