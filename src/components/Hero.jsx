@@ -26,10 +26,16 @@ export default function Hero({ profile }) {
     isHovered: false,
   });
 
-  // Strict conditional rendering: do not render hero container if no profile data exists in database
-  if (!profile || (!profile.name && !profile.title && !profile.bio)) {
-    return null;
-  }
+  // Guaranteed Hero rendering: use database profile if loaded, or active profile fallback
+  const activeProfile = (profile && (profile.name || profile.title || profile.bio)) ? profile : {
+    name: "ABIJITH R A",
+    title: "Machine Learning Enthusiast",
+    bio: "Aspiring AI/ML professional passionate about developing intelligent, data-driven solutions. Skilled in machine learning, deep learning, and Python, with a strong focus on building practical models.",
+    location: "KERALA, INDIA",
+    email: "Abijithra2004@gmail.com",
+    github: "https://github.com/Abijith-RA/",
+    linkedin: "https://www.linkedin.com/in/abijith-ra/"
+  };
 
   // Enhanced cursor-reactive 3D text shift & glow calculation
   const handleMouseMove = (e) => {
@@ -71,41 +77,41 @@ export default function Hero({ profile }) {
     ? `0 0 ${Math.round(textShift.glowAlpha * 30)}px rgba(59, 130, 246, ${textShift.glowAlpha.toFixed(2)})`
     : 'none';
 
-  // Dynamic social link mapping based on populated Supabase profile fields
+  // Dynamic social link mapping based on active profile fields
   const socialItems = [
     {
       key: 'github',
-      url: profile.github || profile.github_url,
+      url: activeProfile.github || activeProfile.github_url,
       title: 'GitHub',
       icon: <GithubIcon size={20} />
     },
     {
       key: 'linkedin',
-      url: profile.linkedin || profile.linkedin_url,
+      url: activeProfile.linkedin || activeProfile.linkedin_url,
       title: 'LinkedIn',
       icon: <LinkedinIcon size={20} />
     },
     {
       key: 'kaggle',
-      url: profile.kaggle || profile.kaggle_url,
+      url: activeProfile.kaggle || activeProfile.kaggle_url,
       title: 'Kaggle',
       icon: <Award size={20} />
     },
     {
       key: 'scholar',
-      url: profile.scholar || profile.scholar_url,
+      url: activeProfile.scholar || activeProfile.scholar_url,
       title: 'Google Scholar',
       icon: <BookOpen size={20} />
     },
     {
       key: 'twitter',
-      url: profile.twitter || profile.twitter_url || profile.x,
+      url: activeProfile.twitter || activeProfile.twitter_url || activeProfile.x,
       title: 'Twitter / X',
       icon: <Globe size={20} />
     },
     {
       key: 'email',
-      url: profile.email ? (profile.email.startsWith('mailto:') ? profile.email : `mailto:${profile.email}`) : null,
+      url: activeProfile.email ? (activeProfile.email.startsWith('mailto:') ? activeProfile.email : `mailto:${activeProfile.email}`) : null,
       title: 'Email',
       icon: <Mail size={20} />
     }
@@ -132,15 +138,15 @@ export default function Hero({ profile }) {
         }}
       >
         {/* Specialization Badge */}
-        {profile.title && (
+        {activeProfile.title && (
           <div className="hero-pill">
             <Sparkles size={16} className="pill-icon" />
-            <span>{profile.title}</span>
+            <span>{activeProfile.title}</span>
           </div>
         )}
 
         {/* Developer Name & Title with Reactive Text Glow */}
-        {profile.name && (
+        {activeProfile.name && (
           <h1
             className="hero-name"
             style={{
@@ -149,11 +155,11 @@ export default function Hero({ profile }) {
               willChange: 'text-shadow',
             }}
           >
-            {profile.name}
+            {activeProfile.name}
           </h1>
         )}
 
-        {profile.title && (
+        {activeProfile.title && (
           <h2
             className="hero-title"
             style={{
@@ -162,14 +168,14 @@ export default function Hero({ profile }) {
               willChange: 'text-shadow',
             }}
           >
-            {profile.title}
+            {activeProfile.title}
           </h2>
         )}
 
         {/* Bio Summary */}
-        {profile.bio && (
+        {activeProfile.bio && (
           <p className="hero-bio">
-            {profile.bio}
+            {activeProfile.bio}
           </p>
         )}
 
