@@ -1,55 +1,38 @@
-/**
- * ==============================================================================
- * Project Card Component with 3D Tilt Effect (src/components/ProjectCard.jsx)
- * ==============================================================================
- * Purpose: Displays an individual project with an interactive 3D tilt-on-hover
- *          effect, tech stack badges, category label, status indicator, and project links.
- * Appears: Used inside ProjectsGrid.jsx to populate the portfolio project showcase.
- * ==============================================================================
- */
-
-import { useState, useRef } from 'react';
 import { ExternalLink, Sparkles } from 'lucide-react';
 import { GithubIcon } from './Icons';
+import { use3DTiltCard } from '../hooks/use3DTiltCard';
+import { useScrollReveal } from '../hooks/useScrollReveal';
 
-export default function ProjectCard({ project }) {
-  const cardRef = useRef(null);
-  const [tilt, setTilt] = useState({ rotateX: 0, rotateY: 0, isHovered: false });
+export default function ProjectCard({ project, index = 0 }) {
+  const { isHovered, tiltProps } = use3DTiltCard(12, 14);
 
-  // 3D Tilt-on-hover math calculation relative to card center
-  const handleMouseMove = (e) => {
-    if (!cardRef.current) return;
-    const rect = cardRef.current.getBoundingClientRect();
-    const width = rect.width;
-    const height = rect.height;
+  // Directional staggered entrance reveal: odd items left, even items right
+  const direction = index % 2 === 0 ? 'left' : 'right';
+  const delay = (index % 4) * 100;
+  const reveal = useScrollReveal({ direction, delay, duration: 550 });
 
-    // Calculate cursor position relative to center (-0.5 to 0.5)
-    const mouseX = (e.clientX - rect.left) / width - 0.5;
-    const mouseY = (e.clientY - rect.top) / height - 0.5;
-
-    // Maximum tilt angles (degrees)
-    const maxTilt = 12;
-    const rotateY = mouseX * maxTilt;
-    const rotateX = -mouseY * maxTilt;
-
-    setTilt({ rotateX, rotateY, isHovered: true });
+  const combinedRef = (node) => {
+    tiltProps.ref.current = node;
+    reveal.ref.current = node;
   };
 
-  const handleMouseLeave = () => {
-    setTilt({ rotateX: 0, rotateY: 0, isHovered: false });
+  const combinedStyle = {
+    ...tiltProps.style,
+    opacity: reveal.style.opacity,
+    transform: reveal.isVisible ? tiltProps.style.transform : reveal.style.transform,
+    transition: reveal.isVisible
+      ? tiltProps.style.transition
+      : reveal.style.transition,
+    willChange: reveal.style.willChange
   };
-
-  const transformStyle = tilt.isHovered
-    ? `perspective(1000px) rotateX(${tilt.rotateX}deg) rotateY(${tilt.rotateY}deg) scale3d(1.02, 1.02, 1.02)`
-    : 'perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)';
 
   return (
     <article
-      ref={cardRef}
-      className={`project-card-3d ${tilt.isHovered ? 'hovered' : ''}`}
-      onMouseMove={handleMouseMove}
-      onMouseLeave={handleMouseLeave}
-      style={{ transform: transformStyle }}
+      ref={combinedRef}
+      onMouseMove={tiltProps.onMouseMove}
+      onMouseLeave={tiltProps.onMouseLeave}
+      style={combinedStyle}
+      className={`project-card-3d ${isHovered ? 'hovered' : ''}`}
     >
       {/* Card Header Image / Visual */}
       <div className="card-image-wrapper">

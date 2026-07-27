@@ -1,15 +1,3 @@
-/**
- * ==============================================================================
- * Footer Component (src/components/Footer.jsx)
- * ==============================================================================
- * Purpose: Page bottom footer featuring brand logo, quick navigation links,
- *          copyright info, and back-to-top button.
- *          Fully data-driven: removes hardcoded demo strings and only shows
- *          social links configured in Supabase profile.
- * Appears: Displayed at the very bottom of the portfolio page.
- * ==============================================================================
- */
-
 import { Cpu, ArrowUp, Mail, BookOpen, Award } from 'lucide-react';
 import { GithubIcon, LinkedinIcon } from './Icons';
 
@@ -38,9 +26,7 @@ export default function Footer({ profile }) {
           <span className="brand-text">{nameToDisplay.toUpperCase()}</span>
         </div>
 
-        <p className="footer-copyright">
-          © {new Date().getFullYear()} {nameToDisplay}. All rights reserved.
-        </p>
+
 
         <div className="footer-actions">
           {socialLinks.map((link) => (

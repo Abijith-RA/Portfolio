@@ -1,13 +1,3 @@
-/**
- * ==============================================================================
- * Projects Grid Component (src/components/ProjectsGrid.jsx)
- * ==============================================================================
- * Purpose: Container section that receives the projects array from useSupabaseData,
- *          provides category filtering, and renders an auto-aligning grid of ProjectCard items.
- * Appears: Displayed in the #projects section of the portfolio page.
- * ==============================================================================
- */
-
 import { useState, useMemo } from 'react';
 import ProjectCard from './ProjectCard';
 import SectionWrapper from './SectionWrapper';
@@ -17,21 +7,23 @@ export default function ProjectsGrid({ projects }) {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const { styleProps: headingStyleProps } = useInteractiveText(12, 6);
 
-  if (!projects || projects.length === 0) {
-    return null;
-  }
-
   // Extract unique categories dynamically from projects list
   const categories = useMemo(() => {
+    if (!projects || !Array.isArray(projects)) return ['All'];
     const set = new Set(projects.map((p) => p.category).filter(Boolean));
     return ['All', ...Array.from(set)];
   }, [projects]);
 
   // Filter projects by active tab selection
   const filteredProjects = useMemo(() => {
+    if (!projects || !Array.isArray(projects)) return [];
     if (selectedCategory === 'All') return projects;
     return projects.filter((p) => p.category === selectedCategory);
   }, [projects, selectedCategory]);
+
+  if (!projects || projects.length === 0) {
+    return null;
+  }
 
   return (
     <SectionWrapper id="projects">
@@ -62,8 +54,8 @@ export default function ProjectsGrid({ projects }) {
 
       {/* Responsive Auto-Fit Projects Grid */}
       <div className="projects-auto-grid">
-        {filteredProjects.map((project) => (
-          <ProjectCard key={project.id || project.title} project={project} />
+        {filteredProjects.map((project, idx) => (
+          <ProjectCard key={project.id || project.title} project={project} index={idx} />
         ))}
       </div>
     </SectionWrapper>

@@ -19,7 +19,7 @@ export function useMagneticGlobal() {
     }
 
     const magneticSelector = `
-      a, button, .nav-link, .btn-nav-contact, .btn-primary-glow, 
+      a:not(.detail-value), button, .nav-link, .btn-nav-contact, .btn-primary-glow, 
       .btn-secondary-glass, .social-link, .tab-btn, .card-btn-primary, 
       .card-btn-outline, .btn-submit, .btn-scroll-top, .footer-link
     `;

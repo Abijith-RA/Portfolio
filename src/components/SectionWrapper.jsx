@@ -1,14 +1,3 @@
-/**
- * ==============================================================================
- * Ultra-Smooth Zero-Lag 3D Parallax Section Container Wrapper
- * (src/components/SectionWrapper.jsx)
- * ==============================================================================
- * Purpose: Wraps non-hero portfolio sections with a high-performance 3D depth stack.
- *          Uses Direct Ref DOM Mutation & LERP Inertia to guarantee 60fps zero-lag
- *          scrolling without React state re-rendering overhead.
- * ==============================================================================
- */
-
 import { useEffect, useRef, useState } from 'react';
 import NeuralBackground from './NeuralBackground';
 
@@ -28,7 +17,7 @@ export default function SectionWrapper({ id, className = '', children }) {
         if (typeof window === 'undefined') return false;
         const mediaQuery = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)');
         return mediaQuery ? (mediaQuery.matches && !window.chrome) : false;
-      } catch (e) {
+      } catch {
         return false;
       }
     };
@@ -65,8 +54,8 @@ export default function SectionWrapper({ id, className = '', children }) {
         // Smooth linear interpolation (LERP) for silky 3D inertia feel
         currentPos += (targetPos - currentPos) * 0.12;
 
-        const farShift = (currentPos * 38).toFixed(2);
-        const nearShift = (currentPos * -28).toFixed(2);
+        const farShift = (currentPos * 25).toFixed(2);
+        const nearShift = (currentPos * -18).toFixed(2);
 
         if (farLayerRef.current) {
           farLayerRef.current.style.transform = `translate3d(0, ${farShift}px, -40px)`;
@@ -86,8 +75,6 @@ export default function SectionWrapper({ id, className = '', children }) {
       if (rafId) cancelAnimationFrame(rafId);
     };
   }, [hasEntered]);
-
-  const isReducedMotion = false; // Always render 3D entrance in desktop environments
 
   const entranceStyle = {
     transform: hasEntered

@@ -1,13 +1,3 @@
-/**
- * ==============================================================================
- * Custom Hook: Supabase Data Manager (src/hooks/useSupabaseData.js)
- * ==============================================================================
- * Purpose: Isolates all Supabase data fetching logic and state management.
- *          Strictly data-driven: Returns empty structures if no Supabase records
- *          exist so sections conditionally return null when tables are empty.
- * ==============================================================================
- */
-
 import { useState, useEffect, useCallback } from 'react';
 import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
 
@@ -79,6 +69,27 @@ const FALLBACK_EXPERIENCE = [
     duration: "2021 - 2023",
     location: "Boston, MA",
     description: "Developed real-time video analytics algorithms deployed to over 50,000 edge devices worldwide."
+  }
+];
+
+const FALLBACK_EDUCATION = [
+  {
+    id: 1,
+    institution: "Stanford University",
+    degree: "Master of Science",
+    field_of_study: "Computer Science (Artificial Intelligence)",
+    start_year: "2019",
+    end_year: "2021",
+    description: "Specialized in Deep Learning, Computer Vision, and Autonomous AI Agents. Published research on efficient Transformer attention."
+  },
+  {
+    id: 2,
+    institution: "University of California, Berkeley",
+    degree: "Bachelor of Science",
+    field_of_study: "Electrical Engineering & Computer Sciences",
+    start_year: "2015",
+    end_year: "2019",
+    description: "Graduated with High Honors. Focused on Distributed Systems, Algorithms, and Machine Learning Fundamentals."
   }
 ];
 
@@ -156,12 +167,26 @@ function normalizeExperience(list) {
   }));
 }
 
+function normalizeEducation(list) {
+  if (!Array.isArray(list)) return [];
+  return list.map(edu => ({
+    ...edu,
+    institution: edu.institution || edu.school || edu.university || edu.college || '',
+    degree: edu.degree || edu.qualification || edu.title || '',
+    field_of_study: edu.field_of_study || edu.field || edu.major || edu.specialization || '',
+    start_year: edu.start_year || edu.start_date || edu.from_year || '',
+    end_year: edu.end_year || edu.end_date || edu.to_year || edu.graduation_year || '',
+    description: edu.description || edu.details || edu.notes || ''
+  }));
+}
+
 export function useSupabaseData() {
   const [data, setData] = useState({
     profile: null,
     projects: [],
     skills: [],
-    experience: []
+    experience: [],
+    education: []
   });
   const [loading, setLoading] = useState(true);
   const [errorDetails, setErrorDetails] = useState(null);
@@ -181,7 +206,8 @@ export function useSupabaseData() {
         profile: FALLBACK_PROFILE,
         projects: FALLBACK_PROJECTS,
         skills: FALLBACK_SKILLS,
-        experience: FALLBACK_EXPERIENCE
+        experience: FALLBACK_EXPERIENCE,
+        education: FALLBACK_EDUCATION
       });
       setLoading(false);
       return;
@@ -206,11 +232,12 @@ export function useSupabaseData() {
         profileData = profileRes.data[0];
       }
 
-      // 2. Fetch projects, skills, and experience
-      const [projectsRes, skillsRes, experienceRes] = await Promise.all([
+      // 2. Fetch projects, skills, experience, and education
+      const [projectsRes, skillsRes, experienceRes, educationRes] = await Promise.all([
         supabase.from('projects').select('*').order('id', { ascending: true }),
         supabase.from('skills').select('*').order('id', { ascending: true }),
-        supabase.from('experience').select('*').order('id', { ascending: true })
+        supabase.from('experience').select('*').order('id', { ascending: true }),
+        supabase.from('education').select('*').order('id', { ascending: true })
       ]);
 
       const errorsList = [];
@@ -218,9 +245,9 @@ export function useSupabaseData() {
       if (projectsRes.error) errorsList.push(`'projects' table: ${projectsRes.error.message}`);
       if (skillsRes.error) errorsList.push(`'skills' table: ${skillsRes.error.message}`);
       if (experienceRes.error) errorsList.push(`'experience' table: ${experienceRes.error.message}`);
-
-      if (errorsList.length > 0) {
-        console.error("Supabase Query Errors:", errorsList);
+      if (educationRes.error && educationRes.error.code !== 'PGRST116') {
+        // Log education query status gracefully if table exists
+        console.info("Supabase 'education' query info:", educationRes.error.message);
       }
 
       // Normalize all retrieved data
@@ -228,8 +255,9 @@ export function useSupabaseData() {
       const normProjects = normalizeProjects(projectsRes.data);
       const normSkills = normalizeSkills(skillsRes.data);
       const normExperience = normalizeExperience(experienceRes.data);
+      const normEducation = normalizeEducation(educationRes.data);
 
-      const hasLiveData = Boolean(normProfile || normProjects.length > 0 || normSkills.length > 0 || normExperience.length > 0);
+      const hasLiveData = Boolean(normProfile || normProjects.length > 0 || normSkills.length > 0 || normExperience.length > 0 || normEducation.length > 0);
 
       setIsLiveDatabase(hasLiveData && errorsList.length === 0);
       setErrorDetails(errorsList.length > 0 ? errorsList.join(' | ') : null);
@@ -238,7 +266,8 @@ export function useSupabaseData() {
         profile: normProfile || (hasLiveData ? null : FALLBACK_PROFILE),
         projects: normProjects.length > 0 ? normProjects : (hasLiveData ? [] : FALLBACK_PROJECTS),
         skills: normSkills.length > 0 ? normSkills : (hasLiveData ? [] : FALLBACK_SKILLS),
-        experience: normExperience.length > 0 ? normExperience : (hasLiveData ? [] : FALLBACK_EXPERIENCE)
+        experience: normExperience.length > 0 ? normExperience : (hasLiveData ? [] : FALLBACK_EXPERIENCE),
+        education: normEducation.length > 0 ? normEducation : (hasLiveData ? [] : FALLBACK_EDUCATION)
       });
     } catch (err) {
       console.error("Supabase fetch exception:", err);
@@ -248,7 +277,8 @@ export function useSupabaseData() {
         profile: FALLBACK_PROFILE,
         projects: FALLBACK_PROJECTS,
         skills: FALLBACK_SKILLS,
-        experience: FALLBACK_EXPERIENCE
+        experience: FALLBACK_EXPERIENCE,
+        education: FALLBACK_EDUCATION
       });
     } finally {
       setLoading(false);
@@ -281,6 +311,7 @@ export function useSupabaseData() {
     projects: data.projects,
     skills: data.skills,
     experience: data.experience,
+    education: data.education,
     loading,
     errorDetails,
     isLiveDatabase,

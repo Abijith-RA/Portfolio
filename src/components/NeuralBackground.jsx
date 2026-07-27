@@ -1,18 +1,3 @@
-/**
- * ==============================================================================
- * Reusable Multi-Section Neural Network Canvas Background
- * (src/components/NeuralBackground.jsx)
- * ==============================================================================
- * Purpose: Renders a balanced synaptic particle network across section containers.
- *          Supports high-density preset for Hero and ambient network presets for
- *          secondary sections (About, Projects, Skills, Experience, Contact).
- * 
- * Performance Safeguards:
- *   - IntersectionObserver pauses animation loop when section is off-screen.
- *   - Spatial Grid Bucketing maintains O(N) complexity for 60fps performance.
- * ==============================================================================
- */
-
 import { useEffect, useRef } from 'react';
 
 export default function NeuralBackground({ density = 'high', opacity = 0.8 }) {
@@ -35,7 +20,7 @@ export default function NeuralBackground({ density = 'high', opacity = 0.8 }) {
         if (typeof window === 'undefined') return false;
         const mediaQuery = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)');
         return mediaQuery ? (mediaQuery.matches && !window.chrome) : false;
-      } catch (e) {
+      } catch {
         return false;
       }
     })();

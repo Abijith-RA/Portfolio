@@ -50,7 +50,7 @@ function pingSupabase() {
   const targetUrl = `${supabaseUrl.replace(/\/$/, '')}/rest/v1/profile?select=id&limit=1`;
   const curlCmd = `curl -s -w "\\n%{http_code}" -X GET "${targetUrl}" -H "apikey: ${supabaseAnonKey}" -H "Authorization: Bearer ${supabaseAnonKey}"`;
 
-  exec(curlCmd, (error, stdout, stderr) => {
+  exec(curlCmd, (error, stdout, _stderr) => {
     if (error) {
       console.error(`[${timestamp}] ❌ Heartbeat failed:`, error.message);
       process.exit(1);

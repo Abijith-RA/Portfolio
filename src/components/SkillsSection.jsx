@@ -1,70 +1,77 @@
-/**
- * ==============================================================================
- * Skills Section Component (src/components/SkillsSection.jsx)
- * ==============================================================================
- * Purpose: Categorizes and displays AI/ML technical skills, frameworks, and proficiency
- *          percentages fetched from the Supabase skills table with 3D tilt-on-hover interaction.
- * Appears: Displayed in the #skills section of the portfolio page.
- * ==============================================================================
- */
-
-import { useState, useRef, useMemo } from 'react';
-import { Cpu, Cloud, Code, Terminal } from 'lucide-react';
+import { useMemo } from 'react';
+import { Cpu, Cloud, Code, Terminal, ArrowRight, Brain, Server, Sparkles, Globe, Database, Wrench } from 'lucide-react';
 import SectionWrapper from './SectionWrapper';
 import { useInteractiveText } from '../hooks/useInteractiveText';
+import { use3DTiltCard } from '../hooks/use3DTiltCard';
+import { useScrollReveal } from '../hooks/useScrollReveal';
 
-function SkillCategoryCardWithTilt({ category, items, icon }) {
-  const cardRef = useRef(null);
-  const [tilt, setTilt] = useState({ rotateX: 0, rotateY: 0, isHovered: false });
+function getSkillIcon(skillName = '', categoryName = '') {
+  const name = skillName.toLowerCase();
+  const cat = categoryName.toLowerCase();
 
-  const handleMouseMove = (e) => {
-    if (!cardRef.current) return;
-    const rect = cardRef.current.getBoundingClientRect();
-    const mouseX = (e.clientX - rect.left) / rect.width - 0.5;
-    const mouseY = (e.clientY - rect.top) / rect.height - 0.5;
-    const maxTilt = 8;
-    setTilt({
-      rotateX: -mouseY * maxTilt,
-      rotateY: mouseX * maxTilt,
-      isHovered: true
-    });
+  if (name.includes('pytorch') || name.includes('tensorflow') || name.includes('model') || cat.includes('ai') || cat.includes('ml')) {
+    return <Brain size={18} className="skill-mini-icon" />;
+  }
+  if (name.includes('llm') || name.includes('rag') || name.includes('gpt') || name.includes('ai')) {
+    return <Sparkles size={18} className="skill-mini-icon" />;
+  }
+  if (name.includes('cuda') || name.includes('gpu') || name.includes('tensorrt')) {
+    return <Cpu size={18} className="skill-mini-icon" />;
+  }
+  if (name.includes('react') || name.includes('vue') || name.includes('next') || name.includes('front') || cat.includes('front')) {
+    return <Globe size={18} className="skill-mini-icon" />;
+  }
+  if (name.includes('python') || name.includes('c++') || name.includes('node') || name.includes('fastapi') || cat.includes('back')) {
+    return <Server size={18} className="skill-mini-icon" />;
+  }
+  if (name.includes('docker') || name.includes('kubernetes') || name.includes('cloud') || cat.includes('cloud')) {
+    return <Cloud size={18} className="skill-mini-icon" />;
+  }
+  if (name.includes('database') || name.includes('sql') || name.includes('postgres') || name.includes('supabase')) {
+    return <Database size={18} className="skill-mini-icon" />;
+  }
+  return <Wrench size={18} className="skill-mini-icon" />;
+}
+
+function SkillCategoryCardWithTilt({ category, items, icon, index = 0, onNavigateSkills }) {
+  const { isHovered, tiltProps } = use3DTiltCard(8, 12);
+  const direction = index % 2 === 0 ? 'left' : 'right';
+  const delay = (index % 4) * 90;
+  const reveal = useScrollReveal({ direction, delay, duration: 550 });
+
+  const combinedRef = (node) => {
+    tiltProps.ref.current = node;
+    reveal.ref.current = node;
   };
 
-  const handleMouseLeave = () => {
-    setTilt({ rotateX: 0, rotateY: 0, isHovered: false });
+  const combinedStyle = {
+    ...tiltProps.style,
+    opacity: reveal.style.opacity,
+    transform: reveal.isVisible ? tiltProps.style.transform : reveal.style.transform,
+    transition: reveal.isVisible ? tiltProps.style.transition : reveal.style.transition,
+    willChange: reveal.style.willChange
   };
-
-  const transformStyle = tilt.isHovered
-    ? `perspective(1000px) rotateX(${tilt.rotateX}deg) rotateY(${tilt.rotateY}deg) scale3d(1.02, 1.02, 1.02)`
-    : 'perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)';
 
   return (
     <div
-      ref={cardRef}
-      className={`skill-category-card-3d ${tilt.isHovered ? 'hovered' : ''}`}
-      onMouseMove={handleMouseMove}
-      onMouseLeave={handleMouseLeave}
-      style={{ transform: transformStyle }}
+      ref={combinedRef}
+      onMouseMove={tiltProps.onMouseMove}
+      onMouseLeave={tiltProps.onMouseLeave}
+      style={combinedStyle}
+      className={`skill-category-card-3d ${isHovered ? 'hovered' : ''}`}
+      onClick={onNavigateSkills}
     >
       <div className="category-header">
         <div className="category-icon">{icon}</div>
         <h3 className="category-name">{category}</h3>
+        <span className="category-count-pill">{items.length} Tech</span>
       </div>
 
-      <div className="skill-items-list">
+      <div className="skill-badges-wrapper">
         {items.map((skill) => (
-          <div key={skill.id || skill.name} className="skill-item">
-            <div className="skill-info">
-              <span className="skill-name">{skill.name}</span>
-              <span className="skill-percentage">{skill.proficiency}%</span>
-            </div>
-
-            <div className="progress-bar-bg">
-              <div
-                className="progress-bar-fill"
-                style={{ width: `${skill.proficiency}%` }}
-              />
-            </div>
+          <div key={skill.id || skill.name} className="skill-badge-card">
+            {getSkillIcon(skill.name, category)}
+            <span className="skill-badge-name">{skill.name}</span>
           </div>
         ))}
       </div>
@@ -72,15 +79,12 @@ function SkillCategoryCardWithTilt({ category, items, icon }) {
   );
 }
 
-export default function SkillsSection({ skills }) {
+export default function SkillsSection({ skills, onNavigateSkills }) {
   const { styleProps: headingStyleProps } = useInteractiveText(12, 6);
-
-  if (!skills || skills.length === 0) {
-    return null;
-  }
 
   // Group skills by category
   const groupedSkills = useMemo(() => {
+    if (!skills || !Array.isArray(skills)) return {};
     return skills.reduce((acc, skill) => {
       const cat = skill.category || 'General';
       if (!acc[cat]) acc[cat] = [];
@@ -88,6 +92,10 @@ export default function SkillsSection({ skills }) {
       return acc;
     }, {});
   }, [skills]);
+
+  if (!skills || skills.length === 0) {
+    return null;
+  }
 
   const getCategoryIcon = (categoryName) => {
     if (categoryName.toLowerCase().includes('core') || categoryName.toLowerCase().includes('ai')) {
@@ -115,14 +123,28 @@ export default function SkillsSection({ skills }) {
       </div>
 
       <div className="skills-grid">
-        {Object.entries(groupedSkills).map(([category, items]) => (
+        {Object.entries(groupedSkills).map(([category, items], idx) => (
           <SkillCategoryCardWithTilt
             key={category}
             category={category}
             items={items}
             icon={getCategoryIcon(category)}
+            index={idx}
+            onNavigateSkills={onNavigateSkills}
           />
         ))}
+      </div>
+
+      <div style={{ marginTop: '2.5rem', textAlign: 'center' }}>
+        <button
+          type="button"
+          className="btn-primary-glow"
+          onClick={onNavigateSkills}
+          style={{ textDecoration: 'none', cursor: 'pointer' }}
+        >
+          <span>Explore Full Skills Directory</span>
+          <ArrowRight size={18} />
+        </button>
       </div>
     </SectionWrapper>
   );
