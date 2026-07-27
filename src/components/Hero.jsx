@@ -26,14 +26,10 @@ export default function Hero({ profile }) {
     isHovered: false,
   });
 
-  // Use profile from Supabase if available, or default to Abijith R A so Hero container never disappears
-  const activeProfile = profile && (profile.name || profile.title || profile.bio) ? profile : {
-    name: "Abijith R A",
-    title: "AI / ML Engineer & Developer",
-    bio: "Building high-performance machine learning models, generative AI systems, and interactive digital applications.",
-    github: "https://github.com/Abijith-RA",
-    email: "abijithra2004@gmail.com"
-  };
+  // Strict conditional rendering: do not render hero container if no profile data exists in database
+  if (!profile || (!profile.name && !profile.title && !profile.bio)) {
+    return null;
+  }
 
   // Enhanced cursor-reactive 3D text shift & glow calculation
   const handleMouseMove = (e) => {
@@ -79,37 +75,37 @@ export default function Hero({ profile }) {
   const socialItems = [
     {
       key: 'github',
-      url: activeProfile.github || activeProfile.github_url,
+      url: profile.github || profile.github_url,
       title: 'GitHub',
       icon: <GithubIcon size={20} />
     },
     {
       key: 'linkedin',
-      url: activeProfile.linkedin || activeProfile.linkedin_url,
+      url: profile.linkedin || profile.linkedin_url,
       title: 'LinkedIn',
       icon: <LinkedinIcon size={20} />
     },
     {
       key: 'kaggle',
-      url: activeProfile.kaggle || activeProfile.kaggle_url,
+      url: profile.kaggle || profile.kaggle_url,
       title: 'Kaggle',
       icon: <Award size={20} />
     },
     {
       key: 'scholar',
-      url: activeProfile.scholar || activeProfile.scholar_url,
+      url: profile.scholar || profile.scholar_url,
       title: 'Google Scholar',
       icon: <BookOpen size={20} />
     },
     {
       key: 'twitter',
-      url: activeProfile.twitter || activeProfile.twitter_url || activeProfile.x,
+      url: profile.twitter || profile.twitter_url || profile.x,
       title: 'Twitter / X',
       icon: <Globe size={20} />
     },
     {
       key: 'email',
-      url: activeProfile.email ? (activeProfile.email.startsWith('mailto:') ? activeProfile.email : `mailto:${activeProfile.email}`) : null,
+      url: profile.email ? (profile.email.startsWith('mailto:') ? profile.email : `mailto:${profile.email}`) : null,
       title: 'Email',
       icon: <Mail size={20} />
     }
@@ -136,15 +132,15 @@ export default function Hero({ profile }) {
         }}
       >
         {/* Specialization Badge */}
-        {activeProfile.title && (
+        {profile.title && (
           <div className="hero-pill">
             <Sparkles size={16} className="pill-icon" />
-            <span>{activeProfile.title}</span>
+            <span>{profile.title}</span>
           </div>
         )}
 
         {/* Developer Name & Title with Reactive Text Glow */}
-        {activeProfile.name && (
+        {profile.name && (
           <h1
             className="hero-name"
             style={{
@@ -153,11 +149,11 @@ export default function Hero({ profile }) {
               willChange: 'text-shadow',
             }}
           >
-            {activeProfile.name}
+            {profile.name}
           </h1>
         )}
 
-        {activeProfile.title && (
+        {profile.title && (
           <h2
             className="hero-title"
             style={{
@@ -166,14 +162,14 @@ export default function Hero({ profile }) {
               willChange: 'text-shadow',
             }}
           >
-            {activeProfile.title}
+            {profile.title}
           </h2>
         )}
 
         {/* Bio Summary */}
-        {activeProfile.bio && (
+        {profile.bio && (
           <p className="hero-bio">
-            {activeProfile.bio}
+            {profile.bio}
           </p>
         )}
 
