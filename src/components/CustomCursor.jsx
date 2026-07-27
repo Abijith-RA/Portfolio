@@ -4,20 +4,24 @@
  * (src/components/CustomCursor.jsx)
  * ==============================================================================
  * Purpose: Provides a smooth 60fps GPU-accelerated ambient glowing aura ring
- *          that tracks behind the native custom SVG AI reticle pointer.
- *          100% resilient - even if JS is disabled or blocked, the site's native
- *          SVG AI reticle cursor remains 100% active and perfectly styled across
- *          Brave (with Shields ON/OFF/Strict), Chrome, Firefox, Safari, and Edge.
+ *          that tracks behind the pointer.
+ *          100% resilient across Brave, Chrome, Firefox, Safari, Edge, and Touch devices.
  * ==============================================================================
  */
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 export default function CustomCursor() {
   const haloRef = useRef(null);
+  const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
     if (typeof window === 'undefined' || typeof document === 'undefined') return;
+
+    // Disable custom trailing cursor on touch/mobile devices
+    if (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) {
+      return;
+    }
 
     let mouseX = window.innerWidth / 2;
     let mouseY = window.innerHeight / 2;
@@ -29,12 +33,17 @@ export default function CustomCursor() {
       if (typeof e.clientX === 'number') {
         mouseX = e.clientX;
         mouseY = e.clientY;
+        setIsVisible(true);
       }
+    };
+
+    const onMouseLeave = () => {
+      setIsVisible(false);
     };
 
     window.addEventListener('mousemove', onMouseMove, { passive: true });
     window.addEventListener('pointermove', onMouseMove, { passive: true });
-    document.addEventListener('mousemove', onMouseMove, { passive: true });
+    document.addEventListener('mouseleave', onMouseLeave, { passive: true });
 
     // Target hover detection for halo expansion
     const handleTargetOver = (e) => {
@@ -70,7 +79,7 @@ export default function CustomCursor() {
     return () => {
       window.removeEventListener('mousemove', onMouseMove);
       window.removeEventListener('pointermove', onMouseMove);
-      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseleave', onMouseLeave);
       document.removeEventListener('mouseover', handleTargetOver);
       if (rafId) cancelAnimationFrame(rafId);
     };
@@ -91,8 +100,9 @@ export default function CustomCursor() {
         border: '1px solid rgba(56, 189, 248, 0.35)',
         pointerEvents: 'none',
         zIndex: 99999,
-        willChange: 'transform',
-        transition: 'width 0.25s ease-out, height 0.25s ease-out, border-color 0.25s ease-out, background 0.25s ease-out',
+        willChange: 'transform, opacity',
+        opacity: isVisible ? 1 : 0,
+        transition: 'opacity 0.2s ease-out, width 0.25s ease-out, height 0.25s ease-out, border-color 0.25s ease-out, background 0.25s ease-out',
       }}
     />
   );
