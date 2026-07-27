@@ -104,26 +104,38 @@ export function useSupabaseData() {
 
       // 1. Fetch Profile (support 'profile' or 'profiles' table)
       const profileRes = await supabase.from('profile').select('*').limit(1);
-      if (!profileRes.error && profileRes.data && profileRes.data.length > 0) {
-        profileData = profileRes.data[0];
-      } else {
+      if (profileRes.error) {
+        console.warn("Supabase fetch 'profile' error:", profileRes.error);
         const profilesRes = await supabase.from('profiles').select('*').limit(1);
         if (!profilesRes.error && profilesRes.data && profilesRes.data.length > 0) {
           profileData = profilesRes.data[0];
         }
+      } else if (profileRes.data && profileRes.data.length > 0) {
+        profileData = profileRes.data[0];
       }
 
-      // 2. Fetch Projects, Skills, and Experience (gracefully query education if present)
+      // 2. Fetch Projects, Skills, and Experience
       const projectsRes = await supabase.from('projects').select('*').order('id', { ascending: true });
       const skillsRes = await supabase.from('skills').select('*').order('id', { ascending: true });
       const experienceRes = await supabase.from('experience').select('*').order('id', { ascending: true });
       const educationRes = await supabase.from('education').select('*').order('id', { ascending: true }).catch(() => ({ data: [] }));
+
+      if (projectsRes.error) console.warn("Supabase 'projects' fetch error:", projectsRes.error);
+      if (skillsRes.error) console.warn("Supabase 'skills' fetch error:", skillsRes.error);
+      if (experienceRes.error) console.warn("Supabase 'experience' fetch error:", experienceRes.error);
 
       const normProfile = normalizeProfile(profileData);
       const normProjects = normalizeProjects(projectsRes.data || []);
       const normSkills = normalizeSkills(skillsRes.data || []);
       const normExperience = normalizeExperience(experienceRes.data || []);
       const normEducation = Array.isArray(educationRes?.data) ? educationRes.data : [];
+
+      console.log("📊 [Supabase Data Loaded]", {
+        profile: normProfile,
+        projectsCount: normProjects.length,
+        skillsCount: normSkills.length,
+        experienceCount: normExperience.length
+      });
 
       setIsLiveDatabase(true);
 
