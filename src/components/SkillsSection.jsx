@@ -10,7 +10,6 @@ export default function SkillsSection({ skills }) {
   return (
     <SectionWrapper id="skills">
       <div className="section-header" style={{ marginBottom: '2.5rem' }}>
-        <span className="section-subtitle">// TECH STACK & TOOLKIT</span>
         <h2 className="section-title" {...headingStyleProps}>
           Skills
         </h2>

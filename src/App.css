@@ -679,8 +679,8 @@
 .skills-matrix-container {
   position: relative;
   width: 100%;
-  max-width: 1000px;
-  height: 420px;
+  max-width: 1200px;
+  height: 560px;
   margin: 0 auto 2.5rem auto;
   background: radial-gradient(circle at 50% 50%, rgba(18, 28, 48, 0.95) 0%, rgba(8, 14, 24, 0.98) 100%);
   border: 1px solid rgba(56, 189, 248, 0.25);
