@@ -263,7 +263,7 @@ export function useSupabaseData() {
         throw err;
       }
     }
-    return { success: true };
+    throw new Error("Supabase is unconfigured or unavailable on this build.");
   };
 
   return {
