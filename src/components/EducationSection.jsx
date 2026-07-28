@@ -102,7 +102,7 @@ export default function EducationSection({ education }) {
           Education & Qualifications
         </h2>
         <p className="section-description">
-          Academic degrees, research specializations, and computer science foundations.
+          Academic degrees and computer science foundations.
         </p>
       </div>
 

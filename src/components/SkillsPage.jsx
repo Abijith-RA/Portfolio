@@ -100,23 +100,8 @@ export default function SkillsPage({ skills = [], onNavigateHome }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
 
-  // Fallback skills if empty
   const activeSkills = useMemo(() => {
-    if (skills && Array.isArray(skills) && skills.length > 0) return skills;
-    return [
-      { id: 1, name: "PyTorch & Deep Learning", category: "AI & Machine Learning" },
-      { id: 2, name: "LLMs & RAG Architectures", category: "AI & Machine Learning" },
-      { id: 3, name: "CUDA & TensorRT Acceleration", category: "AI & Machine Learning" },
-      { id: 4, name: "Computer Vision & OpenCV", category: "AI & Machine Learning" },
-      { id: 5, name: "FastAPI & Microservices", category: "Backend & Systems" },
-      { id: 6, name: "Python & C++ Systems Engine", category: "Backend & Systems" },
-      { id: 7, name: "PostgreSQL & Supabase", category: "Backend & Systems" },
-      { id: 8, name: "React.js & Modern Frontend", category: "Frontend Development" },
-      { id: 9, name: "TypeScript & Next.js", category: "Frontend Development" },
-      { id: 10, name: "Docker & Containerization", category: "Cloud & Infrastructure" },
-      { id: 11, name: "Kubernetes & Orchestration", category: "Cloud & Infrastructure" },
-      { id: 12, name: "Git, GitHub & CI/CD Pipelines", category: "Tools & Ecosystem" }
-    ];
+    return Array.isArray(skills) ? skills : [];
   }, [skills]);
 
   // Extract all categories

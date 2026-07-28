@@ -26,7 +26,7 @@ export default function Navbar({ profile, projects, skills, experience, onNaviga
   // Compute nav links (About, Projects, Skills, Experience, Contact)
   const navLinks = useMemo(() => {
     const links = [];
-    links.push({ id: 'about', label: 'About', href: '#about' });
+    links.push({ id: 'about', label: 'About', href: '#hero' });
     if (projects && projects.length > 0) links.push({ id: 'projects', label: 'Projects', href: '#projects' });
     if (skills && skills.length > 0) links.push({ id: 'skills', label: 'Skills', href: '#/skills' });
     if (experience && experience.length > 0) links.push({ id: 'experience', label: 'Experience', href: '#experience' });

@@ -76,6 +76,19 @@ function normalizeExperience(list) {
   }));
 }
 
+function normalizeEducation(list) {
+  if (!Array.isArray(list)) return [];
+  return list.map(item => ({
+    ...item,
+    degree: item.degree || item.title || item.qualification || '',
+    institution: item.institution || item.school || item.university || '',
+    field_of_study: item.field_of_study || item.major || item.field || '',
+    start_year: item.start_year || item.start_date || '',
+    end_year: item.end_year || item.end_date || '',
+    description: item.description || item.details || ''
+  }));
+}
+
 export function useSupabaseData() {
   const [data, setData] = useState({
     profile: null,
@@ -95,47 +108,117 @@ export function useSupabaseData() {
     if (!isSupabaseConfigured() || !supabase) {
       setErrorDetails("Supabase credentials unconfigured.");
       setIsLiveDatabase(false);
-      setData({ profile: null, projects: [], skills: [], experience: [], education: [] });
+      setData({
+        profile: null,
+        projects: [],
+        skills: [],
+        experience: [],
+        education: []
+      });
       setLoading(false);
       return;
     }
 
     try {
-      let profileData = null;
+      // Execute all Supabase queries concurrently using Promise.allSettled for maximum resilience in Brave & Adblock browsers
+      const results = await Promise.allSettled([
+        supabase.from('profile').select('*'),
+        supabase.from('projects').select('*'),
+        supabase.from('skills').select('*'),
+        supabase.from('experience').select('*'),
+        supabase.from('education').select('*')
+      ]);
 
-      // 1. Fetch Profile (support 'profile' or 'profiles' table, latest row first)
-      const profileRes = await supabase.from('profile').select('*').order('id', { ascending: false }).limit(1);
-      if (profileRes.error) {
-        console.warn("Supabase fetch 'profile' error:", profileRes.error);
-        const profilesRes = await supabase.from('profiles').select('*').order('id', { ascending: false }).limit(1);
-        if (!profilesRes.error && profilesRes.data && profilesRes.data.length > 0) {
-          profileData = profilesRes.data[0];
-        }
-      } else if (profileRes.data && profileRes.data.length > 0) {
-        profileData = profileRes.data[0];
+      const [profileRes, projectsRes, skillsRes, experienceRes, educationRes] = results;
+
+      if (profileRes.status === 'fulfilled' && profileRes.value?.error) {
+        console.warn("⚠️ [Supabase Profile Table Error]:", profileRes.value.error);
+      }
+      if (projectsRes.status === 'fulfilled' && projectsRes.value?.error) {
+        console.warn("⚠️ [Supabase Projects Table Error]:", projectsRes.value.error);
+      }
+      if (skillsRes.status === 'fulfilled' && skillsRes.value?.error) {
+        console.warn("⚠️ [Supabase Skills Table Error]:", skillsRes.value.error);
+      }
+      if (experienceRes.status === 'fulfilled' && experienceRes.value?.error) {
+        console.warn("⚠️ [Supabase Experience Table Error]:", experienceRes.value.error);
       }
 
-      // 2. Fetch Projects, Skills, and Experience
-      const projectsRes = await supabase.from('projects').select('*').order('id', { ascending: true });
-      const skillsRes = await supabase.from('skills').select('*').order('id', { ascending: true });
-      const experienceRes = await supabase.from('experience').select('*').order('id', { ascending: true });
-      const educationRes = await supabase.from('education').select('*').order('id', { ascending: true }).catch(() => ({ data: [] }));
+      let rawProfile = null;
+      if (profileRes.status === 'fulfilled' && Array.isArray(profileRes.value?.data) && profileRes.value.data.length > 0) {
+        // Take the latest profile row
+        const rows = profileRes.value.data;
+        rawProfile = rows[rows.length - 1];
+      } else {
+        // Fallback check for 'profiles' table if 'profile' is empty or errored
+        try {
+          const profilesRes = await supabase.from('profiles').select('*');
+          if (profilesRes.data && profilesRes.data.length > 0) {
+            rawProfile = profilesRes.data[profilesRes.data.length - 1];
+          }
+        } catch {
+          // ignore error
+        }
+      }
 
-      if (projectsRes.error) console.warn("Supabase 'projects' fetch error:", projectsRes.error);
-      if (skillsRes.error) console.warn("Supabase 'skills' fetch error:", skillsRes.error);
-      if (experienceRes.error) console.warn("Supabase 'experience' fetch error:", experienceRes.error);
+      // Raw Projects with fallback check for 'project' table
+      let rawProjects = projectsRes.status === 'fulfilled' && Array.isArray(projectsRes.value?.data) ? projectsRes.value.data : [];
+      if (rawProjects.length === 0) {
+        try {
+          const singularProj = await supabase.from('project').select('*');
+          if (singularProj.data && singularProj.data.length > 0) {
+            rawProjects = singularProj.data;
+          }
+        } catch {
+          // ignore
+        }
+      }
 
-      const normProfile = normalizeProfile(profileData);
-      const normProjects = normalizeProjects(projectsRes.data || []);
-      const normSkills = normalizeSkills(skillsRes.data || []);
-      const normExperience = normalizeExperience(experienceRes.data || []);
-      const normEducation = Array.isArray(educationRes?.data) ? educationRes.data : [];
+      // Raw Skills with fallback check for 'skill' table
+      let rawSkills = skillsRes.status === 'fulfilled' && Array.isArray(skillsRes.value?.data) ? skillsRes.value.data : [];
+      if (rawSkills.length === 0) {
+        try {
+          const singularSkill = await supabase.from('skill').select('*');
+          if (singularSkill.data && singularSkill.data.length > 0) {
+            rawSkills = singularSkill.data;
+          }
+        } catch {
+          // ignore
+        }
+      }
 
-      console.log("📊 [Supabase Data Loaded]", {
+      // Raw Experience with fallback checks across all common experience table names
+      let rawExperience = experienceRes.status === 'fulfilled' && Array.isArray(experienceRes.value?.data) ? experienceRes.value.data : [];
+      if (rawExperience.length === 0) {
+        const altTables = ['experiences', 'work_experience', 'work_experiences', 'job_experience', 'work_history', 'experience_history', 'user_experience', 'experience_list'];
+        for (const tbl of altTables) {
+          try {
+            const expRes = await supabase.from(tbl).select('*');
+            if (expRes.data && expRes.data.length > 0) {
+              rawExperience = expRes.data;
+              break;
+            }
+          } catch {
+            // ignore
+          }
+        }
+      }
+
+      const rawEducation = educationRes.status === 'fulfilled' && Array.isArray(educationRes.value?.data) ? educationRes.value.data : [];
+
+      const normProfile = normalizeProfile(rawProfile);
+      const normProjects = normalizeProjects(rawProjects);
+      const normSkills = normalizeSkills(rawSkills);
+      const normExperience = normalizeExperience(rawExperience);
+      const normEducation = normalizeEducation(rawEducation);
+
+      console.log("📊 [Supabase Live Data Loaded]", {
+        rawProfileReceived: rawProfile,
         profile: normProfile,
         projectsCount: normProjects.length,
         skillsCount: normSkills.length,
-        experienceCount: normExperience.length
+        experienceCount: normExperience.length,
+        educationCount: normEducation.length
       });
 
       setIsLiveDatabase(true);
@@ -151,6 +234,13 @@ export function useSupabaseData() {
       console.error("Supabase fetch exception:", err);
       setIsLiveDatabase(false);
       setErrorDetails(err.message || "Failed to query Supabase.");
+      setData({
+        profile: null,
+        projects: [],
+        skills: [],
+        experience: [],
+        education: []
+      });
     } finally {
       setLoading(false);
     }
@@ -162,11 +252,16 @@ export function useSupabaseData() {
 
   const submitContactMessage = async (formData) => {
     if (isSupabaseConfigured() && supabase) {
-      const { data: result, error: submitErr } = await supabase
-        .from('contact_messages')
-        .insert([formData]);
-      if (submitErr) throw submitErr;
-      return result;
+      try {
+        const { data: result, error: submitErr } = await supabase
+          .from('contact_messages')
+          .insert([formData]);
+        if (submitErr) throw submitErr;
+        return result;
+      } catch (err) {
+        console.error("Contact message submission error:", err);
+        throw err;
+      }
     }
     return { success: true };
   };

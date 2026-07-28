@@ -56,15 +56,8 @@ function AboutBioCardWithTilt({ profile }) {
     margin: '0 auto'
   };
 
-  const bioText = profile?.bio || "Architecting high-throughput deep learning pipelines, generative AI models, and real-time computer vision applications.";
-  const statsArray = (profile?.stats && Array.isArray(profile.stats) && profile.stats.length > 0)
-    ? profile.stats
-    : [
-        { label: "Models Deployed", value: "25+" },
-        { label: "Research Papers", value: "8" },
-        { label: "GitHub Stars", value: "1.2k" },
-        { label: "Years Exp.", value: "6+" }
-      ];
+  const bioText = profile?.bio || "Machine Learning Engineer & AI Specialist passionate about developing intelligent, data-driven solutions.";
+  const statsArray = (profile?.stats && Array.isArray(profile.stats)) ? profile.stats : [];
 
   return (
     <div
@@ -77,11 +70,13 @@ function AboutBioCardWithTilt({ profile }) {
       <p className="bio-paragraph">{bioText}</p>
 
       {/* Metric Stats Banner */}
-      <div className="stats-grid" style={{ marginTop: '2rem' }}>
-        {statsArray.map((stat, idx) => (
-          <StatCardWithTilt key={idx} stat={stat} index={idx} />
-        ))}
-      </div>
+      {statsArray.length > 0 && (
+        <div className="stats-grid" style={{ marginTop: '2rem' }}>
+          {statsArray.map((stat, idx) => (
+            <StatCardWithTilt key={idx} stat={stat} index={idx} />
+          ))}
+        </div>
+      )}
 
       {/* Integrated Contact Access Point */}
       <div className="about-contact-bar" style={{ marginTop: '2.5rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
@@ -117,7 +112,7 @@ export default function AboutSection({ profile }) {
       <div className="section-header">
         <span className="section-subtitle">// ABOUT ME</span>
         <h2 className="section-title" {...headingStyleProps}>
-          About & Specialization
+          About Me
         </h2>
       </div>
 

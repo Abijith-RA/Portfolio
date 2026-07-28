@@ -1,21 +1,15 @@
-/**
- * ==============================================================================
- * Magnetic Cursor Interaction Hook (src/hooks/useMagnetic.js)
- * ==============================================================================
- * Purpose: Provides spring-like GPU-accelerated magnetic cursor pull effect for all
- *          interactive elements (buttons, links, social icons, tabs, nav items).
- * ==============================================================================
- */
-
 import { useEffect } from 'react';
 
 export function useMagneticGlobal() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    // Respect prefers-reduced-motion setting
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      return;
+    try {
+      if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        return;
+      }
+    } catch {
+      // ignore safely
     }
 
     const magneticSelector = `
@@ -24,49 +18,43 @@ export function useMagneticGlobal() {
       .card-btn-outline, .btn-submit, .btn-scroll-top, .footer-link
     `;
 
-    const handleMouseMove = (e) => {
-      const targets = document.querySelectorAll(magneticSelector);
+    let activeEl = null;
 
-      targets.forEach((el) => {
-        const rect = el.getBoundingClientRect();
+    const handleMouseMove = (e) => {
+      if (!e || !e.target) return;
+      const target = e.target.closest(magneticSelector);
+      if (target) {
+        if (activeEl && activeEl !== target) {
+          activeEl.style.transform = 'translate3d(0px, 0px, 0px)';
+          activeEl.style.transition = 'transform 0.35s cubic-bezier(0.25, 1, 0.5, 1)';
+        }
+        activeEl = target;
+        const rect = target.getBoundingClientRect();
         const centerX = rect.left + rect.width / 2;
         const centerY = rect.top + rect.height / 2;
-
         const dx = e.clientX - centerX;
         const dy = e.clientY - centerY;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-
-        // Proximity radius (70px or element radius + 40px)
-        const proximityRadius = Math.max(70, Math.max(rect.width, rect.height) * 0.75);
-
-        if (distance < proximityRadius) {
-          // Subtle magnetic pull (max 5-6px shift)
-          const pullFactor = (1 - distance / proximityRadius);
-          const pullX = (dx * 0.25 * pullFactor).toFixed(2);
-          const pullY = (dy * 0.25 * pullFactor).toFixed(2);
-
-          el.style.transform = `translate3d(${pullX}px, ${pullY}px, 0px)`;
-          el.style.transition = 'transform 0.12s cubic-bezier(0.25, 1, 0.5, 1)';
-        } else {
-          // Eased return to default position
-          if (el.style.transform && el.style.transform !== 'none' && el.style.transform !== 'translate3d(0px, 0px, 0px)') {
-            el.style.transform = 'translate3d(0px, 0px, 0px)';
-            el.style.transition = 'transform 0.4s cubic-bezier(0.25, 1, 0.5, 1)';
-          }
-        }
-      });
+        const pullX = (dx * 0.18).toFixed(2);
+        const pullY = (dy * 0.18).toFixed(2);
+        target.style.transform = `translate3d(${pullX}px, ${pullY}px, 0px)`;
+        target.style.transition = 'transform 0.1s cubic-bezier(0.25, 1, 0.5, 1)';
+      } else if (activeEl) {
+        activeEl.style.transform = 'translate3d(0px, 0px, 0px)';
+        activeEl.style.transition = 'transform 0.35s cubic-bezier(0.25, 1, 0.5, 1)';
+        activeEl = null;
+      }
     };
 
     const handleMouseLeave = () => {
-      const targets = document.querySelectorAll(magneticSelector);
-      targets.forEach((el) => {
-        el.style.transform = 'translate3d(0px, 0px, 0px)';
-        el.style.transition = 'transform 0.4s cubic-bezier(0.25, 1, 0.5, 1)';
-      });
+      if (activeEl) {
+        activeEl.style.transform = 'translate3d(0px, 0px, 0px)';
+        activeEl.style.transition = 'transform 0.35s cubic-bezier(0.25, 1, 0.5, 1)';
+        activeEl = null;
+      }
     };
 
-    window.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseleave', handleMouseLeave);
+    window.addEventListener('mousemove', handleMouseMove, { passive: true });
+    document.addEventListener('mouseleave', handleMouseLeave, { passive: true });
 
     return () => {
       window.removeEventListener('mousemove', handleMouseMove);

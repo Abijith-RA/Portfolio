@@ -279,26 +279,26 @@ export default function ContactSection({ profile, submitContactMessage }) {
 
           <div className="form-row">
             <div className="form-group">
-              <label htmlFor="name">Your Name</label>
+              <label htmlFor="name">Name</label>
               <input
                 type="text"
                 id="name"
                 name="name"
                 required
-                placeholder="Dr. Sarah Chen"
+                placeholder="Name"
                 value={formData.name}
                 onChange={handleChange}
               />
             </div>
 
             <div className="form-group">
-              <label htmlFor="email">Email Address</label>
+              <label htmlFor="email">Email</label>
               <input
                 type="email"
                 id="email"
                 name="email"
                 required
-                placeholder="sarah@example.com"
+                placeholder="Email"
                 value={formData.email}
                 onChange={handleChange}
               />
@@ -312,7 +312,7 @@ export default function ContactSection({ profile, submitContactMessage }) {
               id="subject"
               name="subject"
               required
-              placeholder="AI Engineering Opportunity / Research Collaboration"
+              placeholder="Subject"
               value={formData.subject}
               onChange={handleChange}
             />
@@ -325,7 +325,7 @@ export default function ContactSection({ profile, submitContactMessage }) {
               name="message"
               rows={5}
               required
-              placeholder="Hi, I'd like to discuss an opportunity..."
+              placeholder="Message"
               value={formData.message}
               onChange={handleChange}
             />

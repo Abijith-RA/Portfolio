@@ -33,7 +33,7 @@ export default function ProjectsGrid({ projects }) {
           AI / ML Projects & Deployments
         </h2>
         <p className="section-description">
-          Hover over any card to trigger the 3D perspective effect. Select categories below to filter by specialization.
+          Hover over any card to trigger the 3D perspective effect. Select categories below to filter projects.
         </p>
       </div>
 

@@ -61,7 +61,7 @@ function TimelineCardWithTilt({ item, index = 0 }) {
 export default function ExperienceTimeline({ experience }) {
   const { styleProps: headingStyleProps } = useInteractiveText(12, 6);
 
-  if (!experience || experience.length === 0) {
+  if (!experience || !Array.isArray(experience) || experience.length === 0) {
     return null;
   }
 

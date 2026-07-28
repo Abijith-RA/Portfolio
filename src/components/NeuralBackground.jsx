@@ -51,9 +51,9 @@ export default function NeuralBackground({ density = 'high', opacity = 0.8 }) {
           y: Math.random() * (height || 600),
           vx: (Math.random() - 0.5) * (isReducedMotion ? 0.05 : speedMult),
           vy: (Math.random() - 0.5) * (isReducedMotion ? 0.05 : speedMult),
-          radius: Math.random() * 1.6 + 1.0,
+          radius: Math.random() * 2.2 + 2.2,
           phase: Math.random() * Math.PI * 2,
-          baseRadius: Math.random() * 1.6 + 1.0,
+          baseRadius: Math.random() * 2.2 + 2.2,
           color: Math.random() > 0.35 ? '#3b82f6' : (Math.random() > 0.5 ? '#60a5fa' : '#38bdf8'),
         });
       }
@@ -68,15 +68,19 @@ export default function NeuralBackground({ density = 'high', opacity = 0.8 }) {
       initNodes();
     };
 
-    const handleMouseMove = (e) => {
+    const handleGlobalMouseMove = (e) => {
+      if (!canvas) return;
       const rect = canvas.getBoundingClientRect();
-      mouse.x = e.clientX - rect.left;
-      mouse.y = e.clientY - rect.top;
-      mouse.active = true;
-    };
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
 
-    const handleMouseLeave = () => {
-      mouse.active = false;
+      if (x >= -120 && x <= rect.width + 120 && y >= -120 && y <= rect.height + 120) {
+        mouse.x = x;
+        mouse.y = y;
+        mouse.active = true;
+      } else {
+        mouse.active = false;
+      }
     };
 
     // IntersectionObserver to pause loop when section is scrolled out of viewport
@@ -93,11 +97,10 @@ export default function NeuralBackground({ density = 'high', opacity = 0.8 }) {
     observer.observe(canvas);
 
     window.addEventListener('resize', handleResize);
-    canvas.addEventListener('mousemove', handleMouseMove);
-    canvas.addEventListener('mouseleave', handleMouseLeave);
+    window.addEventListener('mousemove', handleGlobalMouseMove);
 
     let time = 0;
-    const maxConnectionDist = density === 'high' ? 160 : 130;
+    const maxConnectionDist = density === 'high' ? 185 : 145;
     const cellSize = maxConnectionDist;
 
     // Main Canvas Render Loop
@@ -166,12 +169,12 @@ export default function NeuralBackground({ density = 'high', opacity = 0.8 }) {
                   const midX = (n1.x + n2.x) / 2;
                   const midY = (n1.y + n2.y) / 2;
                   const mDistSq = (mouse.x - midX) ** 2 + (mouse.y - midY) ** 2;
-                  const mRadius = 125;
+                  const mRadius = 145;
 
                   if (mDistSq < mRadius * mRadius) {
                     const mDist = Math.sqrt(mDistSq);
                     const boost = (1 - mDist / mRadius);
-                    alpha = Math.min(alpha + boost * 0.4, 0.88);
+                    alpha = Math.min(alpha + boost * 0.45, 0.92);
                     strokeColor = 'rgba(56, 189, 248, ';
                   }
                 }
@@ -181,17 +184,36 @@ export default function NeuralBackground({ density = 'high', opacity = 0.8 }) {
                   ctx.moveTo(n1.x, n1.y);
                   ctx.lineTo(n2.x, n2.y);
                   ctx.strokeStyle = `${strokeColor}${alpha.toFixed(3)})`;
-                  ctx.lineWidth = alpha > 0.35 ? 1.2 : 0.75;
+                  ctx.lineWidth = alpha > 0.35 ? 1.8 : 1.15;
                   ctx.stroke();
                 }
               }
             }
           }
         }
+
+        // Direct laser connection from nearby nodes to cursor
+        if (mouse.active) {
+          const mdx = n1.x - mouse.x;
+          const mdy = n1.y - mouse.y;
+          const mdistSq = mdx * mdx + mdy * mdy;
+          const cursorConnectRadius = 220;
+
+          if (mdistSq < cursorConnectRadius * cursorConnectRadius) {
+            const mdist = Math.sqrt(mdistSq);
+            const mAlpha = (1 - mdist / cursorConnectRadius) * 0.85;
+            ctx.beginPath();
+            ctx.moveTo(n1.x, n1.y);
+            ctx.lineTo(mouse.x, mouse.y);
+            ctx.strokeStyle = `rgba(56, 189, 248, ${mAlpha.toFixed(3)})`;
+            ctx.lineWidth = 1.6;
+            ctx.stroke();
+          }
+        }
       }
 
       // 3. Update Node Physics & Render Synaptic Nodes
-      const mouseRepelRadius = density === 'high' ? 115 : 90;
+      const mouseRepelRadius = density === 'high' ? 140 : 100;
 
       for (let i = 0; i < nodes.length; i++) {
         const node = nodes[i];
@@ -213,7 +235,7 @@ export default function NeuralBackground({ density = 'high', opacity = 0.8 }) {
 
           if (mdistSq < mouseRepelRadius * mouseRepelRadius && mdistSq > 0) {
             const mdist = Math.sqrt(mdistSq);
-            const force = (1 - mdist / mouseRepelRadius) * 3.8;
+            const force = (1 - mdist / mouseRepelRadius) * 4.2;
             node.x += (mdx / mdist) * force;
             node.y += (mdy / mdist) * force;
           }
@@ -223,18 +245,15 @@ export default function NeuralBackground({ density = 'high', opacity = 0.8 }) {
         if (mouse.active) {
           const mdx = node.x - mouse.x;
           const mdy = node.y - mouse.y;
-          if (mdx * mdx + mdy * mdy < 85 * 85) {
-            currentRadius = node.baseRadius * 1.45;
+          if (mdx * mdx + mdy * mdy < 95 * 95) {
+            currentRadius = node.baseRadius * 1.55;
           }
         }
 
         ctx.beginPath();
         ctx.arc(node.x, node.y, currentRadius, 0, Math.PI * 2);
         ctx.fillStyle = node.color;
-        ctx.shadowColor = node.color;
-        ctx.shadowBlur = density === 'high' ? 8 : 4;
         ctx.fill();
-        ctx.shadowBlur = 0;
       }
 
       animationFrameId = requestAnimationFrame(draw);
@@ -245,10 +264,7 @@ export default function NeuralBackground({ density = 'high', opacity = 0.8 }) {
     return () => {
       observer.disconnect();
       window.removeEventListener('resize', handleResize);
-      if (canvas) {
-        canvas.removeEventListener('mousemove', handleMouseMove);
-        canvas.removeEventListener('mouseleave', handleMouseLeave);
-      }
+      window.removeEventListener('mousemove', handleGlobalMouseMove);
       if (animationFrameId) cancelAnimationFrame(animationFrameId);
     };
   }, [density]);
