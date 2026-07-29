@@ -3,7 +3,6 @@ import { useEffect, useRef, useState } from 'react';
 export default function SkillBubblesArena({ skills = [] }) {
   const containerRef = useRef(null);
   const canvasRef = useRef(null);
-  const [activeScore, setActiveScore] = useState(0);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -19,8 +18,12 @@ export default function SkillBubblesArena({ skills = [] }) {
     const mouse = { x: -1000, y: -1000, active: false, isDown: false };
     const shockwaves = [];
     const particles = [];
+    const wallRipples = [];
 
-    // Default 5 skills specified by user
+    let clickReactionTimer = 0;
+    let isHoveringAny = false;
+
+    // Default fallback skills
     const defaultUserSkills = [
       { name: 'Python' },
       { name: 'Numpy' },
@@ -29,7 +32,6 @@ export default function SkillBubblesArena({ skills = [] }) {
       { name: 'Git' }
     ];
 
-    // Normalize incoming Supabase skills or fallback
     const rawList = (Array.isArray(skills) && skills.length > 0) ? skills : defaultUserSkills;
 
     const activeList = rawList
@@ -48,30 +50,75 @@ export default function SkillBubblesArena({ skills = [] }) {
 
     let nodes = [];
 
+    const spawnParticles = (x, y, count = 10, color = '#38bdf8') => {
+      for (let i = 0; i < count; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.random() * 4 + 1.2;
+        particles.push({
+          x,
+          y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          alpha: 1.0,
+          size: Math.random() * 3 + 1.5,
+          color
+        });
+      }
+    };
+
+    const addWallRipple = (x, y, isVertical = false) => {
+      if (wallRipples.length > 15) wallRipples.shift();
+      wallRipples.push({
+        x,
+        y,
+        radius: 4,
+        maxRadius: 36,
+        alpha: 1.0,
+        isVertical
+      });
+    };
+
     const updateDimensions = () => {
       const rect = container.getBoundingClientRect();
       width = canvas.width = rect.width;
       height = canvas.height = rect.height;
 
-      const centerX = width / 2;
-      const centerY = height / 2;
+      if (width === 0 || height === 0) return;
+
+      const isMobile = width <= 768;
+      const pad = isMobile ? 45 : 75;
+      const usableW = Math.max(100, width - pad * 2);
+      const usableH = Math.max(100, height - pad * 2);
       const total = displaySkills.length;
-      const orbitRadius = Math.min(width, height) * 0.32;
+
+      const cols = Math.ceil(Math.sqrt(total * (usableW / usableH)));
+      const rows = Math.ceil(total / cols);
+      const cellW = usableW / cols;
+      const cellH = usableH / rows;
 
       nodes = displaySkills.map((s, idx) => {
         const text = s.name;
-        const radius = Math.max(48, Math.min(68, text.length * 6 + 24));
-        const angle = (idx / total) * Math.PI * 2;
+        const radius = isMobile
+          ? Math.max(38, Math.min(54, text.length * 5 + 18))
+          : Math.max(44, Math.min(64, text.length * 6 + 22));
+
+        const col = idx % cols;
+        const row = Math.floor(idx / cols);
+
+        const initialX = pad + col * cellW + cellW / 2 + (Math.random() - 0.5) * (cellW * 0.4);
+        const initialY = pad + row * cellH + cellH / 2 + (Math.random() - 0.5) * (cellH * 0.4);
+
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.random() * 0.8 + 0.6;
 
         return {
           id: idx,
           name: text,
           radius,
-          angle,
-          x: centerX + Math.cos(angle) * orbitRadius,
-          y: centerY + Math.sin(angle) * orbitRadius,
-          vx: (Math.random() - 0.5) * 0.6,
-          vy: (Math.random() - 0.5) * 0.6,
+          x: Math.max(radius + 15, Math.min(width - radius - 15, initialX)),
+          y: Math.max(radius + 15, Math.min(height - radius - 15, initialY)),
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
           isHovered: false,
           energy: 0
         };
@@ -97,87 +144,60 @@ export default function SkillBubblesArena({ skills = [] }) {
       mouse.isDown = false;
     };
 
-    const spawnParticles = (x, y, count = 18, color = '#38bdf8') => {
-      for (let i = 0; i < count; i++) {
-        const angle = Math.random() * Math.PI * 2;
-        const speed = Math.random() * 5 + 2;
-        particles.push({
-          x,
-          y,
-          vx: Math.cos(angle) * speed,
-          vy: Math.sin(angle) * speed,
-          alpha: 1,
-          size: Math.random() * 4 + 2,
-          color
-        });
-      }
-    };
-
     const triggerExplosiveShockwave = (clickX, clickY) => {
-      // Limit active shockwaves to a maximum of 3 concurrent waves to eliminate mobile phone lag
       if (shockwaves.length >= 3) return;
 
       mouse.isDown = true;
-
+      clickReactionTimer = 90; // Active reaction for ~1.5 sec
       const isMobile = typeof window !== 'undefined' && (window.innerWidth <= 768 || ('ontouchstart' in window));
 
-      // 1. Primary Outer Wave
       shockwaves.push({
         x: clickX,
         y: clickY,
-        radius: 6,
-        maxRadius: isMobile ? 260 : 340,
-        speed: isMobile ? 8.0 : 6.5,
+        radius: 8,
+        maxRadius: isMobile ? 240 : 320,
+        speed: isMobile ? 8.5 : 7.0,
         alpha: 1.0,
         color: '#38bdf8',
         width: 3.0
       });
 
-      // 2. Secondary Echo Wave (if under 3 max wave limit)
       if (shockwaves.length < 3 && !isMobile) {
         shockwaves.push({
           x: clickX,
           y: clickY,
           radius: 2,
-          maxRadius: 240,
-          speed: 5.0,
-          alpha: 0.85,
+          maxRadius: 220,
+          speed: 5.2,
+          alpha: 0.8,
           color: '#60a5fa',
           width: 2.0
         });
       }
 
-      // 3. Spawn Particle Burst (Optimized for phone performance)
-      spawnParticles(clickX, clickY, isMobile ? 8 : 18, '#38bdf8');
+      spawnParticles(clickX, clickY, isMobile ? 8 : 16, '#38bdf8');
 
-      // 4. Kinetic Impulse on Nearby Nodes
       let hitNode = false;
       nodes.forEach(n => {
         const dx = n.x - clickX;
         const dy = n.y - clickY;
         const dist = Math.sqrt(dx * dx + dy * dy);
 
-        if (dist < n.radius + 40) {
+        if (dist < n.radius + 60) {
           hitNode = true;
           n.energy = 1.0;
           const launchAngle = Math.atan2(dy, dx) || Math.random() * Math.PI * 2;
-          const impulse = (1 - dist / (n.radius + 150)) * (isMobile ? 8 : 12) + 3;
+          const impulse = (1 - dist / (n.radius + 180)) * (isMobile ? 7 : 11) + 2.5;
           n.vx += Math.cos(launchAngle) * impulse;
           n.vy += Math.sin(launchAngle) * impulse;
-          spawnParticles(n.x, n.y, isMobile ? 6 : 12, '#38bdf8');
+          spawnParticles(n.x, n.y, isMobile ? 5 : 10, '#38bdf8');
         }
       });
-
-      if (hitNode) {
-        setActiveScore(prev => prev + 1);
-      }
     };
 
     const handleMouseDown = (e) => {
       const rect = canvas.getBoundingClientRect();
-      const clickX = e.clientX - rect.left;
-      const clickY = e.clientY - rect.top;
-      triggerExplosiveShockwave(clickX, clickY);
+      triggerExplosiveShockwave(e.clientX - rect.left, e.clientY - rect.top);
     };
 
     const handleTouchStart = (e) => {
@@ -216,6 +236,8 @@ export default function SkillBubblesArena({ skills = [] }) {
 
     const draw = () => {
       time += 0.015;
+      if (clickReactionTimer > 0) clickReactionTimer--;
+
       ctx.clearRect(0, 0, width, height);
 
       if (width === 0 || height === 0) {
@@ -223,23 +245,58 @@ export default function SkillBubblesArena({ skills = [] }) {
         return;
       }
 
-      const centerX = width / 2;
-      const centerY = height / 2;
-      const orbitRadius = Math.min(width, height) * 0.32;
-
-      // 1. Draw Subtle Holographic Radar Background Rings
+      // 1. Subtle Cybernetic Grid
       ctx.save();
-      ctx.strokeStyle = 'rgba(56, 189, 248, 0.08)';
-      ctx.lineWidth = 1.2;
-      const radarRadii = [orbitRadius * 0.5, orbitRadius, orbitRadius * 1.4];
-      radarRadii.forEach(r => {
+      ctx.strokeStyle = 'rgba(56, 189, 248, 0.04)';
+      ctx.lineWidth = 1;
+
+      const gridSize = 40;
+      for (let x = 0; x < width; x += gridSize) {
         ctx.beginPath();
-        ctx.arc(centerX, centerY, r, 0, Math.PI * 2);
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, height);
         ctx.stroke();
-      });
+      }
+      for (let y = 0; y < height; y += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(width, y);
+        ctx.stroke();
+      }
+
+      // Corner Accents
+      const cornerLen = 14;
+      ctx.strokeStyle = 'rgba(56, 189, 248, 0.25)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(12, 12 + cornerLen); ctx.lineTo(12, 12); ctx.lineTo(12 + cornerLen, 12); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(width - 12 - cornerLen, 12); ctx.lineTo(width - 12, 12); ctx.lineTo(width - 12, 12 + cornerLen); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(12, height - 12 - cornerLen); ctx.lineTo(12, height - 12); ctx.lineTo(12 + cornerLen, height - 12); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(width - 12 - cornerLen, height - 12); ctx.lineTo(width - 12, height - 12); ctx.lineTo(width - 12, height - 12 - cornerLen); ctx.stroke();
       ctx.restore();
 
-      // 2. Expanded Kinetic Shockwave Rings Logic
+      // 2. Render Wall Impact Kinetic Ripples
+      for (let i = wallRipples.length - 1; i >= 0; i--) {
+        const wr = wallRipples[i];
+        wr.radius += 1.8;
+        wr.alpha -= 0.035;
+
+        if (wr.alpha <= 0 || wr.radius >= wr.maxRadius) {
+          wallRipples.splice(i, 1);
+          continue;
+        }
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(wr.x, wr.y, wr.radius, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(56, 189, 248, ${Math.max(0, wr.alpha)})`;
+        ctx.lineWidth = 2.0;
+        ctx.shadowColor = '#38bdf8';
+        ctx.shadowBlur = 12;
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // 3. Render Shockwaves
       for (let i = shockwaves.length - 1; i >= 0; i--) {
         const sw = shockwaves[i];
         sw.radius += sw.speed;
@@ -253,36 +310,35 @@ export default function SkillBubblesArena({ skills = [] }) {
         ctx.save();
         ctx.beginPath();
         ctx.arc(sw.x, sw.y, sw.radius, 0, Math.PI * 2);
-        ctx.strokeStyle = sw.color.replace(')', `, ${Math.max(0, sw.alpha)})`).replace('rgb', 'rgba').replace('#38bdf8', `rgba(56, 189, 248, ${sw.alpha})`).replace('#60a5fa', `rgba(96, 165, 250, ${sw.alpha})`);
+        ctx.strokeStyle = `rgba(56, 189, 248, ${Math.max(0, sw.alpha)})`;
         ctx.lineWidth = sw.width;
         ctx.shadowColor = sw.color;
-        ctx.shadowBlur = 18;
+        ctx.shadowBlur = 16;
         ctx.stroke();
         ctx.restore();
 
-        // Push nodes hit by expanding wave front
         nodes.forEach(n => {
           const dx = n.x - sw.x;
           const dy = n.y - sw.y;
           const dist = Math.sqrt(dx * dx + dy * dy);
 
           if (Math.abs(dist - sw.radius) < 35 && dist > 0) {
-            const pushForce = (1 - sw.radius / sw.maxRadius) * 5.5;
+            const pushForce = (1 - sw.radius / sw.maxRadius) * 4.5;
             n.vx += (dx / dist) * pushForce;
             n.vy += (dy / dist) * pushForce;
-            n.energy = Math.min(1.0, n.energy + 0.4);
+            n.energy = Math.min(1.0, n.energy + 0.35);
           }
         });
       }
 
-      // 3. Particle Sparks Logic
+      // 4. Render Sparks
       for (let i = particles.length - 1; i >= 0; i--) {
         const p = particles[i];
         p.x += p.vx;
         p.y += p.vy;
-        p.vx *= 0.93;
-        p.vy *= 0.93;
-        p.alpha -= 0.025;
+        p.vx *= 0.94;
+        p.vy *= 0.94;
+        p.alpha -= 0.024;
 
         if (p.alpha <= 0) {
           particles.splice(i, 1);
@@ -295,57 +351,104 @@ export default function SkillBubblesArena({ skills = [] }) {
         ctx.fillStyle = p.color;
         ctx.globalAlpha = Math.max(0, p.alpha);
         ctx.shadowColor = p.color;
-        ctx.shadowBlur = 10;
+        ctx.shadowBlur = 8;
         ctx.fill();
         ctx.restore();
       }
 
-      // 4. Orbital Physics & Movement
+      // 5. Physics & Wall Bouncing
+      isHoveringAny = false;
+
       for (let i = 0; i < nodes.length; i++) {
         const n = nodes[i];
 
-        // Decay node energy
         if (n.energy > 0) n.energy -= 0.015;
 
-        n.angle += 0.006;
-        const targetX = centerX + Math.cos(n.angle + Math.sin(time * 0.8 + i) * 0.2) * orbitRadius;
-        const targetY = centerY + Math.sin(n.angle + Math.cos(time * 0.8 + i) * 0.2) * (orbitRadius * 0.85);
+        // Calm, readable ambient float turbulence
+        n.vx += Math.sin(time * 0.9 + i * 1.5) * 0.02;
+        n.vy += Math.cos(time * 0.9 + i * 1.5) * 0.02;
 
-        n.vx += (targetX - n.x) * 0.004;
-        n.vy += (targetY - n.y) * 0.004;
+        const currentSpeed = Math.sqrt(n.vx * n.vx + n.vy * n.vy);
 
-        n.vx *= 0.95;
-        n.vy *= 0.95;
+        // Dynamic speed damping: High speed from touch/click decelerates smoothly back to readable float (~0.8)
+        if (currentSpeed > 1.2) {
+          n.vx *= 0.95;
+          n.vy *= 0.95;
+        } else if (currentSpeed < 0.4) {
+          const boostAngle = Math.atan2(n.vy, n.vx) || (Math.random() * Math.PI * 2);
+          n.vx += Math.cos(boostAngle) * 0.15;
+          n.vy += Math.sin(boostAngle) * 0.15;
+        }
+
+        // Cap absolute max speed
+        if (currentSpeed > 7.0) {
+          n.vx = (n.vx / currentSpeed) * 7.0;
+          n.vy = (n.vy / currentSpeed) * 7.0;
+        }
+
+        // Soft border repulsion cushion to prevent sticking in corners
+        const pad = n.radius + 12;
+        const cushionMargin = 50;
+        if (n.x < pad + cushionMargin) {
+          n.vx += (1 - (n.x - pad) / cushionMargin) * 0.12;
+        } else if (n.x > width - pad - cushionMargin) {
+          n.vx -= (1 - (width - pad - n.x) / cushionMargin) * 0.12;
+        }
+        if (n.y < pad + cushionMargin) {
+          n.vy += (1 - (n.y - pad) / cushionMargin) * 0.12;
+        } else if (n.y > height - pad - cushionMargin) {
+          n.vy -= (1 - (height - pad - n.y) / cushionMargin) * 0.12;
+        }
 
         n.x += n.vx;
         n.y += n.vy;
 
-        // Boundary Clamp
-        const pad = n.radius + 15;
-        if (n.x < pad) { n.x = pad; n.vx *= -0.6; }
-        if (n.x > width - pad) { n.x = width - pad; n.vx *= -0.6; }
-        if (n.y < pad) { n.y = pad; n.vy *= -0.6; }
-        if (n.y > height - pad) { n.y = height - pad; n.vy *= -0.6; }
+        // Clean Wall Bouncing with Ripple Waves
+        if (n.x < pad) {
+          n.x = pad;
+          n.vx = Math.abs(n.vx) * 0.92;
+          addWallRipple(0, n.y, true);
+          spawnParticles(n.x, n.y, 6, '#38bdf8');
+        } else if (n.x > width - pad) {
+          n.x = width - pad;
+          n.vx = -Math.abs(n.vx) * 0.92;
+          addWallRipple(width, n.y, true);
+          spawnParticles(n.x, n.y, 6, '#38bdf8');
+        }
 
-        // Mouse Hover & Repel/Attract Physics
+        if (n.y < pad) {
+          n.y = pad;
+          n.vy = Math.abs(n.vy) * 0.92;
+          addWallRipple(n.x, 0, false);
+          spawnParticles(n.x, n.y, 6, '#38bdf8');
+        } else if (n.y > height - pad) {
+          n.y = height - pad;
+          n.vy = -Math.abs(n.vy) * 0.92;
+          addWallRipple(n.x, height, false);
+          spawnParticles(n.x, n.y, 6, '#38bdf8');
+        }
+
+        // Fast Touch / Mouse Impulse (Touch/hover launches skills fast!)
         if (mouse.active) {
           const dx = n.x - mouse.x;
           const dy = n.y - mouse.y;
           const dist = Math.sqrt(dx * dx + dy * dy);
 
-          if (dist < n.radius + 40 && dist > 0) {
+          if (dist < n.radius + 80 && dist > 0) {
             n.isHovered = true;
-            const force = mouse.isDown ? -5.5 : (1 - dist / (n.radius + 40)) * 4;
+            isHoveringAny = true;
+            n.energy = 1.0;
+            // Strong impulse on touch/hover so skills shoot away fast
+            const force = mouse.isDown ? -6.5 : (1 - dist / (n.radius + 80)) * 5.2;
             n.vx += (dx / dist) * force;
             n.vy += (dy / dist) * force;
 
-            // Draw Magnetic Cursor Slingshot Line
             ctx.save();
             ctx.beginPath();
             ctx.moveTo(mouse.x, mouse.y);
             ctx.lineTo(n.x, n.y);
-            ctx.strokeStyle = mouse.isDown ? '#38bdf8' : 'rgba(56, 189, 248, 0.5)';
-            ctx.lineWidth = mouse.isDown ? 2.5 : 1.4;
+            ctx.strokeStyle = mouse.isDown ? '#38bdf8' : 'rgba(56, 189, 248, 0.45)';
+            ctx.lineWidth = mouse.isDown ? 2.2 : 1.2;
             ctx.setLineDash([4, 4]);
             ctx.stroke();
             ctx.restore();
@@ -357,7 +460,7 @@ export default function SkillBubblesArena({ skills = [] }) {
         }
       }
 
-      // 5. Elastic Collision Resolution
+      // 6. Anti-Crowding & Collisions
       for (let i = 0; i < nodes.length; i++) {
         for (let j = i + 1; j < nodes.length; j++) {
           const n1 = nodes[i];
@@ -365,10 +468,21 @@ export default function SkillBubblesArena({ skills = [] }) {
 
           const dx = n2.x - n1.x;
           const dy = n2.y - n1.y;
-          const dist = Math.sqrt(dx * dx + dy * dy);
+          const dist = Math.sqrt(dx * dx + dy * dy) || 1;
           const minDist = n1.radius + n2.radius + 14;
 
-          if (dist < minDist && dist > 0) {
+          const repelRange = Math.max(minDist * 2.8, 160);
+          if (dist < repelRange) {
+            const repelForce = (1 - dist / repelRange) * 0.16;
+            const nx = dx / dist;
+            const ny = dy / dist;
+            n1.vx -= nx * repelForce;
+            n1.vy -= ny * repelForce;
+            n2.vx += nx * repelForce;
+            n2.vy += ny * repelForce;
+          }
+
+          if (dist < minDist) {
             const overlap = 0.5 * (minDist - dist);
             const nx = dx / dist;
             const ny = dy / dist;
@@ -378,20 +492,19 @@ export default function SkillBubblesArena({ skills = [] }) {
             n2.x += nx * overlap;
             n2.y += ny * overlap;
 
-            n1.vx -= nx * 0.45;
-            n1.vy -= ny * 0.45;
-            n2.vx += nx * 0.45;
-            n2.vy += ny * 0.45;
+            n1.vx -= nx * 0.42;
+            n1.vy -= ny * 0.42;
+            n2.vx += nx * 0.42;
+            n2.vy += ny * 0.42;
 
-            // Collision Spark Effect
-            if (Math.abs(n1.vx) > 1 || Math.abs(n2.vx) > 1) {
-              spawnParticles((n1.x + n2.x) / 2, (n1.y + n2.y) / 2, 6, '#38bdf8');
+            if (Math.abs(n1.vx) > 0.8 || Math.abs(n2.vx) > 0.8) {
+              spawnParticles((n1.x + n2.x) / 2, (n1.y + n2.y) / 2, 5, '#38bdf8');
             }
           }
         }
       }
 
-      // 6. Draw Synaptic Laser Web Connecting Nodes
+      // 7. Laser Connections
       for (let i = 0; i < nodes.length; i++) {
         for (let j = i + 1; j < nodes.length; j++) {
           const n1 = nodes[i];
@@ -401,26 +514,26 @@ export default function SkillBubblesArena({ skills = [] }) {
           const dy = n1.y - n2.y;
           const dist = Math.sqrt(dx * dx + dy * dy);
 
-          if (dist < 280) {
+          if (dist < 230) {
             const isHover = n1.isHovered || n2.isHovered || n1.energy > 0.2 || n2.energy > 0.2;
-            const alpha = (1 - dist / 280) * (isHover ? 0.7 : 0.2);
+            const alpha = (1 - dist / 230) * (isHover ? 0.65 : 0.18);
 
             ctx.save();
             ctx.beginPath();
             ctx.moveTo(n1.x, n1.y);
             ctx.lineTo(n2.x, n2.y);
             ctx.strokeStyle = isHover ? `rgba(56, 189, 248, ${alpha})` : `rgba(59, 130, 246, ${alpha})`;
-            ctx.lineWidth = isHover ? 2.0 : 1.0;
+            ctx.lineWidth = isHover ? 1.8 : 0.9;
             ctx.stroke();
             ctx.restore();
           }
         }
       }
 
-      // 7. Render Skill Nodes
+      // 8. Render Skill Bubbles
       for (let i = 0; i < nodes.length; i++) {
         const n = nodes[i];
-        const currentRadius = n.isHovered ? n.radius * 1.2 : n.radius;
+        const currentRadius = n.isHovered ? n.radius * 1.18 : n.radius;
 
         ctx.save();
         ctx.beginPath();
@@ -441,7 +554,7 @@ export default function SkillBubblesArena({ skills = [] }) {
           ctx.strokeStyle = '#38bdf8';
           ctx.lineWidth = 2.4;
           ctx.shadowColor = 'rgba(56, 189, 248, 0.75)';
-          ctx.shadowBlur = 24;
+          ctx.shadowBlur = 22;
         } else {
           bgGrad.addColorStop(0, 'rgba(24, 32, 50, 0.92)');
           bgGrad.addColorStop(1, 'rgba(12, 18, 30, 0.95)');
@@ -456,34 +569,45 @@ export default function SkillBubblesArena({ skills = [] }) {
         ctx.stroke();
         ctx.restore();
 
-        // Active Energy Pulse Ring
         if (n.energy > 0.05) {
           ctx.save();
           ctx.beginPath();
-          ctx.arc(n.x, n.y, currentRadius + (1 - n.energy) * 22, 0, Math.PI * 2);
-          ctx.strokeStyle = `rgba(56, 189, 248, ${n.energy * 0.85})`;
-          ctx.lineWidth = 2.0;
+          ctx.arc(n.x, n.y, currentRadius + (1 - n.energy) * 20, 0, Math.PI * 2);
+          ctx.strokeStyle = `rgba(56, 189, 248, ${n.energy * 0.8})`;
+          ctx.lineWidth = 1.8;
           ctx.stroke();
           ctx.restore();
         }
 
-        // Skill Label Text
         ctx.save();
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.font = `600 ${currentRadius < 55 ? 15.5 : 17.5}px "Inter", system-ui, sans-serif`;
+        ctx.font = `600 ${currentRadius < 48 ? 14 : 16}px "Inter", system-ui, sans-serif`;
         ctx.fillStyle = (n.isHovered || n.energy > 0.2) ? '#ffffff' : '#e2e8f0';
         ctx.fillText(n.name, n.x, n.y);
         ctx.restore();
       }
 
-      // 8. Subtle HUD Instruction Badge Overlay
+      // 9. Interactive Reaction HUD Header
+      let hudText = "// DON'T TOUCH MY SKILLS ⚡";
+      let hudColor = 'rgba(56, 189, 248, 0.7)';
+
+      if (clickReactionTimer > 0) {
+        hudText = "// OUCH! DON'T TOUCH! 💥";
+        hudColor = '#ef4444';
+      } else if (mouse.active && isHoveringAny) {
+        hudText = "// HEY! DON'T DO THAT 🚨";
+        hudColor = '#f59e0b';
+      }
+
       ctx.save();
       ctx.textAlign = 'right';
       ctx.textBaseline = 'top';
       ctx.font = '600 11px "JetBrains Mono", monospace';
-      ctx.fillStyle = 'rgba(56, 189, 248, 0.65)';
-      ctx.fillText("// DON'T TOUCH MY SKILLS ⚡", width - 20, 20);
+      ctx.fillStyle = hudColor;
+      ctx.shadowColor = hudColor;
+      ctx.shadowBlur = 10;
+      ctx.fillText(hudText, width - 20, 20);
       ctx.restore();
 
       animationFrameId = requestAnimationFrame(draw);
