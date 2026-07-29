@@ -1360,6 +1360,25 @@ select:hover,
   .db-status-pill span {
     display: none;
   }
+
+  /* GPU Mobile Performance Optimization */
+  .project-card-3d,
+  .skill-category-card-3d,
+  .about-bio-card,
+  .focus-card,
+  .timeline-card,
+  .contact-info-card,
+  .contact-form,
+  .stat-card {
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4) !important;
+    will-change: auto !important;
+  }
+
+  .ambient-glow-orb {
+    display: none !important;
+  }
 }
 
 @media (max-width: 639px) {
@@ -1865,4 +1884,152 @@ select:focus-visible,
   color: #ffffff;
   margin-bottom: 0.5rem;
 }
+
+/* ==============================================================================
+ * Dedicated Standalone Projects Page Styles (.projects-page-*)
+ * ============================================================================== */
+.projects-page-wrapper {
+  width: 100%;
+  min-height: 100vh;
+  padding-bottom: 5rem;
+}
+
+.projects-page-header {
+  width: 100%;
+  background: radial-gradient(circle at 50% 0%, rgba(56, 189, 248, 0.12) 0%, rgba(15, 23, 42, 0.95) 75%);
+  border-bottom: 1px solid var(--border-subtle);
+  padding: 3rem 1.5rem 2.5rem;
+  margin-bottom: 3rem;
+  backdrop-filter: blur(16px);
+}
+
+.projects-header-container {
+  max-width: 72rem;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.projects-header-title-block {
+  text-align: center;
+}
+
+.projects-page-title {
+  font-size: clamp(2rem, 4vw, 3rem);
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: -0.02em;
+}
+
+.projects-controls-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  align-items: center;
+  width: 100%;
+  max-width: 48rem;
+  margin: 0 auto;
+}
+
+.projects-page-content {
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+.projects-page-grid-container {
+  width: 100%;
+}
+
+/* 3D Tilt Project Cards on Projects Page */
+.project-page-card-3d {
+  background: var(--bg-card);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border-subtle);
+  border-radius: 1.25rem;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transform-style: preserve-3d;
+  transition: transform 0.15s cubic-bezier(0.03, 0.98, 0.52, 0.99), box-shadow 0.3s ease-out, border-color 0.3s ease-out;
+  will-change: transform;
+}
+
+.project-page-card-3d.hovered {
+  border-color: var(--border-accent);
+  box-shadow: var(--glow-card-hover);
+}
+
+.card-type-badge-top {
+  position: absolute;
+  top: 0.75rem;
+  left: 0.75rem;
+  z-index: 5;
+}
+
+/* Project Type Badges (College, Personal, Research) */
+.project-type-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.project-type-pill.college {
+  background: rgba(168, 85, 247, 0.22);
+  border: 1px solid rgba(168, 85, 247, 0.5);
+  color: #d8b4fe;
+}
+
+.project-type-pill.company {
+  background: rgba(34, 197, 94, 0.2);
+  border: 1px solid rgba(34, 197, 94, 0.5);
+  color: #4ade80;
+}
+
+.project-type-pill.personal {
+  background: rgba(56, 189, 248, 0.2);
+  border: 1px solid rgba(56, 189, 248, 0.5);
+  color: #38bdf8;
+}
+
+.project-type-pill.research {
+  background: rgba(245, 158, 11, 0.2);
+  border: 1px solid rgba(245, 158, 11, 0.5);
+  color: #fbbf24;
+}
+
+.card-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.card-category-tag {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.card-year-badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-dim);
+  background: rgba(255, 255, 255, 0.04);
+  padding: 0.15rem 0.5rem;
+  border-radius: 0.35rem;
+  border: 1px solid var(--border-subtle);
+}
+
 

@@ -87,11 +87,6 @@ function SkillCard({ skill }) {
           <span className="skill-card-category-badge">{skill.category}</span>
         )}
       </div>
-
-      <div className="skill-card-status">
-        <CheckCircle2 size={15} className="status-check" />
-        <span className="status-label">Verified</span>
-      </div>
     </div>
   );
 }
@@ -144,31 +139,11 @@ export default function SkillsPage({ skills = [], onNavigateHome }) {
           </button>
 
           <div className="skills-header-title-block">
-            <span className="skills-badge-subtitle">// TECH DIRECTORY</span>
             <h1 className="skills-page-title">Technical Mastery & Stack</h1>
-            <p className="skills-page-description">
-              A clean overview of core frameworks, deep learning toolkits, and production engineering infrastructure.
-            </p>
           </div>
 
-          {/* Search & Category Filter Controls */}
+          {/* Minimal Category Filter Pills */}
           <div className="skills-controls-bar">
-            {/* Search Input Box */}
-            <div className="skills-search-box">
-              <Search size={18} className="search-icon" />
-              <input
-                type="text"
-                placeholder="Search skills or technologies..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="skills-search-input"
-              />
-              {searchQuery && (
-                <button className="clear-search-btn" onClick={() => setSearchQuery('')}>✕</button>
-              )}
-            </div>
-
-            {/* Category Filter Pills */}
             <div className="skills-category-tabs">
               {categories.map((cat) => (
                 <button

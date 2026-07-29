@@ -114,35 +114,41 @@ export default function SkillBubblesArena({ skills = [] }) {
     };
 
     const triggerExplosiveShockwave = (clickX, clickY) => {
+      // Limit active shockwaves to a maximum of 3 concurrent waves to eliminate mobile phone lag
+      if (shockwaves.length >= 3) return;
+
       mouse.isDown = true;
 
-      // 1. Primary Massive Outer Wave (Broad & Fast)
+      const isMobile = typeof window !== 'undefined' && (window.innerWidth <= 768 || ('ontouchstart' in window));
+
+      // 1. Primary Outer Wave
       shockwaves.push({
         x: clickX,
         y: clickY,
         radius: 6,
-        maxRadius: 340,
-        speed: 6.5,
+        maxRadius: isMobile ? 260 : 340,
+        speed: isMobile ? 8.0 : 6.5,
         alpha: 1.0,
         color: '#38bdf8',
-        width: 3.5
+        width: 3.0
       });
 
-      // 2. Secondary High-Frequency Echo Wave
-      shockwaves.push({
-        x: clickX,
-        y: clickY,
-        radius: 2,
-        maxRadius: 260,
-        speed: 4.8,
-        alpha: 0.85,
-        color: '#60a5fa',
-        width: 2.0
-      });
+      // 2. Secondary Echo Wave (if under 3 max wave limit)
+      if (shockwaves.length < 3 && !isMobile) {
+        shockwaves.push({
+          x: clickX,
+          y: clickY,
+          radius: 2,
+          maxRadius: 240,
+          speed: 5.0,
+          alpha: 0.85,
+          color: '#60a5fa',
+          width: 2.0
+        });
+      }
 
-      // 3. Spawn Explosive Particle Burst
-      spawnParticles(clickX, clickY, 24, '#38bdf8');
-      spawnParticles(clickX, clickY, 12, '#93c5fd');
+      // 3. Spawn Particle Burst (Optimized for phone performance)
+      spawnParticles(clickX, clickY, isMobile ? 8 : 18, '#38bdf8');
 
       // 4. Kinetic Impulse on Nearby Nodes
       let hitNode = false;
@@ -155,10 +161,10 @@ export default function SkillBubblesArena({ skills = [] }) {
           hitNode = true;
           n.energy = 1.0;
           const launchAngle = Math.atan2(dy, dx) || Math.random() * Math.PI * 2;
-          const impulse = (1 - dist / (n.radius + 150)) * 12 + 4;
+          const impulse = (1 - dist / (n.radius + 150)) * (isMobile ? 8 : 12) + 3;
           n.vx += Math.cos(launchAngle) * impulse;
           n.vy += Math.sin(launchAngle) * impulse;
-          spawnParticles(n.x, n.y, 16, '#38bdf8');
+          spawnParticles(n.x, n.y, isMobile ? 6 : 12, '#38bdf8');
         }
       });
 

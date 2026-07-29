@@ -1,9 +1,10 @@
 import { useState, useMemo } from 'react';
+import { ArrowRight } from 'lucide-react';
 import ProjectCard from './ProjectCard';
 import SectionWrapper from './SectionWrapper';
 import { useInteractiveText } from '../hooks/useInteractiveText';
 
-export default function ProjectsGrid({ projects }) {
+export default function ProjectsGrid({ projects, onNavigateProjects }) {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const { styleProps: headingStyleProps } = useInteractiveText(12, 6);
 
@@ -58,6 +59,21 @@ export default function ProjectsGrid({ projects }) {
           <ProjectCard key={project.id || project.title} project={project} index={idx} />
         ))}
       </div>
+
+      {/* Explore All Projects CTA Button */}
+      {onNavigateProjects && (
+        <div style={{ display: 'flex', justifyContent: 'center', marginTop: '3rem' }}>
+          <button
+            type="button"
+            className="btn-primary-glow"
+            onClick={onNavigateProjects}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.65rem' }}
+          >
+            <span>Explore All Projects</span>
+            <ArrowRight size={18} />
+          </button>
+        </div>
+      )}
     </SectionWrapper>
   );
 }

@@ -15,7 +15,7 @@ import NeuralBackground from './NeuralBackground';
 import { ArrowRight, Mail, BookOpen, Sparkles, Terminal, Award, Globe } from 'lucide-react';
 import { GithubIcon, LinkedinIcon } from './Icons';
 
-export default function Hero({ profile }) {
+export default function Hero({ profile, onNavigateProjects }) {
   const containerRef = useRef(null);
   const [textShift, setTextShift] = useState({
     translateX: 0,
@@ -181,7 +181,18 @@ export default function Hero({ profile }) {
 
         {/* Action Buttons */}
         <div className="hero-actions">
-          <a href="#projects" className="btn-primary-glow">
+          <a
+            href="#/projects"
+            className="btn-primary-glow"
+            onClick={(e) => {
+              e.preventDefault();
+              if (onNavigateProjects) {
+                onNavigateProjects();
+              } else {
+                window.location.hash = '#/projects';
+              }
+            }}
+          >
             <span>Explore Projects</span>
             <ArrowRight size={18} />
           </a>

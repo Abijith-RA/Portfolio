@@ -6,6 +6,7 @@ import CustomCursor from './components/CustomCursor';
 import Navbar from './components/Navbar';
 import Hero from './components/Hero';
 import ProjectsGrid from './components/ProjectsGrid';
+import ProjectsPage from './components/ProjectsPage';
 import SkillsSection from './components/SkillsSection';
 import SkillsPage from './components/SkillsPage';
 import ExperienceTimeline from './components/ExperienceTimeline';
@@ -19,10 +20,11 @@ export default function App() {
   // Activate site-wide GPU-accelerated magnetic cursor pull effect
   useMagneticGlobal();
 
-  // Route view state ('home' | 'skills') synced with hash location
+  // Route view state ('home' | 'skills' | 'projects') synced with hash location
   const [currentView, setCurrentView] = useState(() => {
-    if (typeof window !== 'undefined' && window.location.hash === '#/skills') {
-      return 'skills';
+    if (typeof window !== 'undefined') {
+      if (window.location.hash === '#/skills') return 'skills';
+      if (window.location.hash === '#/projects') return 'projects';
     }
     return 'home';
   });
@@ -33,7 +35,10 @@ export default function App() {
       if (window.location.hash === '#/skills') {
         setCurrentView('skills');
         window.scrollTo({ top: 0, behavior: 'smooth' });
-      } else if (currentView === 'skills') {
+      } else if (window.location.hash === '#/projects') {
+        setCurrentView('projects');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else if (currentView !== 'home') {
         setCurrentView('home');
       }
     };
@@ -47,6 +52,10 @@ export default function App() {
     if (view === 'skills') {
       setCurrentView('skills');
       window.location.hash = '#/skills';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else if (view === 'projects') {
+      setCurrentView('projects');
+      window.location.hash = '#/projects';
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
       setCurrentView('home');
@@ -77,12 +86,26 @@ export default function App() {
     submitContactMessage
   } = useSupabaseData();
 
-  if (loading) {
+  // Ensure instant initial page render (max 250ms loader threshold for first-time visitors)
+  const [showContent, setShowContent] = useState(!loading);
+
+  useEffect(() => {
+    if (!loading) {
+      setShowContent(true);
+    } else {
+      const timer = setTimeout(() => {
+        setShowContent(true);
+      }, 250);
+      return () => clearTimeout(timer);
+    }
+  }, [loading]);
+
+  if (loading && !showContent) {
     return (
       <div className="portfolio-app" style={{ justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
         <div style={{ color: '#38bdf8', fontSize: '1.2rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           <span className="pulse-dot" style={{ width: '12px', height: '12px' }}></span>
-          Initializing AI Portfolio Systems...
+          Loading...
         </div>
       </div>
     );
@@ -103,21 +126,26 @@ export default function App() {
         currentView={currentView}
       />
 
-      {/* Dynamic View Rendering: Standalone Skills Page vs Full Home Portfolio */}
+      {/* Dynamic View Rendering: Skills Page vs Projects Page vs Full Home Portfolio */}
       {currentView === 'skills' ? (
         <SkillsPage
           skills={skills}
           onNavigateHome={() => handleNavigate('home', '#hero')}
         />
+      ) : currentView === 'projects' ? (
+        <ProjectsPage
+          projects={projects}
+          onNavigateHome={() => handleNavigate('home', '#hero')}
+        />
       ) : (
         <div className="main-content">
           {/* 1. Hero Section */}
-          <Hero profile={profile} />
+          <Hero
+            profile={profile}
+            onNavigateProjects={() => handleNavigate('projects')}
+          />
 
-          {/* 2. Featured AI/ML Projects Grid */}
-          <ProjectsGrid projects={projects} />
-
-          {/* 3. Skills & Proficiencies Overview */}
+          {/* 2. Skills & Proficiencies Overview */}
           <SkillsSection
             skills={skills}
             onNavigateSkills={() => handleNavigate('skills')}

@@ -29,9 +29,56 @@ function normalizeProfile(raw) {
   };
 }
 
+function extractSortYear(item) {
+  if (!item) return 0;
+  
+  const allText = `${item.end_year || ''} ${item.start_year || ''} ${item.duration || ''} ${item.period || ''} ${item.years || ''} ${item.degree || ''} ${item.role || ''}`.toLowerCase();
+  const isPresent = allText.includes('present') || allText.includes('current') || allText.includes('ongoing') || allText.includes('now') || allText.includes('enrolled');
+
+  const years = allText.match(/\d{4}/g);
+  let maxYear = 0;
+  if (years && years.length > 0) {
+    maxYear = Math.max(...years.map(Number));
+  }
+
+  if (isPresent) {
+    return maxYear > 0 ? maxYear + 10000 : 19999;
+  }
+
+  if (maxYear > 0) {
+    return maxYear;
+  }
+
+  const numericId = Number(item.id);
+  if (!isNaN(numericId) && numericId > 0) return numericId;
+
+  return 0;
+}
+
+function standardizeProjectType(val) {
+  if (!val || typeof val !== 'string') return 'Personal Project';
+  const trimmed = val.trim();
+  const lower = trimmed.toLowerCase();
+
+  if (lower.includes('college') || lower.includes('academic') || lower.includes('university') || lower.includes('degree') || lower.includes('school')) {
+    return 'College Project';
+  }
+  if (lower.includes('company') || lower.includes('work') || lower.includes('corporate') || lower.includes('industry') || lower.includes('client') || lower.includes('job') || lower.includes('professional')) {
+    return 'Company Project';
+  }
+  if (lower.includes('research') || lower.includes('lab') || lower.includes('paper')) {
+    return 'Research Project';
+  }
+  if (lower.includes('personal') || lower.includes('self')) {
+    return 'Personal Project';
+  }
+
+  return trimmed.replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.slice(1).toLowerCase());
+}
+
 function normalizeProjects(list) {
   if (!Array.isArray(list)) return [];
-  return list.map(item => {
+  const normalized = list.map(item => {
     let tech_stack = item.tech_stack || item.technologies || item.tags || [];
     if (typeof tech_stack === 'string') {
       try {
@@ -41,16 +88,28 @@ function normalizeProjects(list) {
         tech_stack = tech_stack.replace(/[{}]/g, '').split(',').map(s => s.trim()).filter(Boolean);
       }
     }
+    const rawType = item.project_type || item.projecttype || item.type || item.status || item.project_status || item.context || item.institution || item.company || item.organization || item.what_is_do || '';
+    const stdType = standardizeProjectType(rawType);
     return {
       ...item,
-      title: item.title || item.name || '',
-      description: item.description || item.summary || '',
+      title: item.title || item.name || item.projectname || item.project_name || '',
+      description: item.description || item.summary || item.details || '',
       category: item.category || item.tag || 'Project',
+      project_type: stdType,
+      status: item.status || stdType,
+      start_year: item.start_year || item.year || '',
       tech_stack: Array.isArray(tech_stack) ? tech_stack : [],
       github: item.github || item.github_url || item.repo_url || item.source_url || '',
       link: item.link || item.demo_url || item.live_url || item.url || '',
       image_url: item.image_url || item.image || item.cover_image || ''
     };
+  });
+
+  return normalized.sort((a, b) => {
+    const yearA = extractSortYear(a);
+    const yearB = extractSortYear(b);
+    if (yearB !== yearA) return yearB - yearA;
+    return (b.id || 0) - (a.id || 0);
   });
 }
 
@@ -66,7 +125,7 @@ function normalizeSkills(list) {
 
 function normalizeExperience(list) {
   if (!Array.isArray(list)) return [];
-  return list.map(exp => ({
+  const normalized = list.map(exp => ({
     ...exp,
     role: exp.role || exp.title || exp.position || '',
     company: exp.company || exp.organization || exp.employer || '',
@@ -74,11 +133,18 @@ function normalizeExperience(list) {
     location: exp.location || exp.place || '',
     description: exp.description || exp.details || ''
   }));
+
+  return normalized.sort((a, b) => {
+    const yearA = extractSortYear(a);
+    const yearB = extractSortYear(b);
+    if (yearB !== yearA) return yearB - yearA;
+    return (b.id || 0) - (a.id || 0);
+  });
 }
 
 function normalizeEducation(list) {
   if (!Array.isArray(list)) return [];
-  return list.map(item => ({
+  const normalized = list.map(item => ({
     ...item,
     degree: item.degree || item.title || item.qualification || '',
     institution: item.institution || item.school || item.university || '',
@@ -87,40 +153,72 @@ function normalizeEducation(list) {
     end_year: item.end_year || item.end_date || '',
     description: item.description || item.details || ''
   }));
+
+  return normalized.sort((a, b) => {
+    const yearA = extractSortYear(a);
+    const yearB = extractSortYear(b);
+    if (yearB !== yearA) return yearB - yearA;
+    return (b.id || 0) - (a.id || 0);
+  });
+}
+
+const CACHE_KEY = 'portfolio_supabase_cache_v2';
+
+function getCachedData() {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem(CACHE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch {
+    // ignore cache read errors
+  }
+  return null;
+}
+
+function setCachedData(payload) {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(CACHE_KEY, JSON.stringify(payload));
+  } catch {
+    // ignore cache write errors
+  }
 }
 
 export function useSupabaseData() {
-  const [data, setData] = useState({
-    profile: null,
-    projects: [],
-    skills: [],
-    experience: [],
-    education: []
+  const [data, setData] = useState(() => {
+    const cached = getCachedData();
+    if (cached) return cached;
+    return {
+      profile: null,
+      projects: [],
+      skills: [],
+      experience: [],
+      education: []
+    };
   });
-  const [loading, setLoading] = useState(true);
+
+  const [loading, setLoading] = useState(() => {
+    return !getCachedData();
+  });
   const [errorDetails, setErrorDetails] = useState(null);
   const [isLiveDatabase, setIsLiveDatabase] = useState(false);
 
   const fetchAllData = useCallback(async () => {
-    setLoading(true);
+    const hasCache = !!getCachedData();
+    if (!hasCache) {
+      setLoading(true);
+    }
     setErrorDetails(null);
 
     if (!isSupabaseConfigured() || !supabase) {
       setErrorDetails("Supabase credentials unconfigured.");
       setIsLiveDatabase(false);
-      setData({
-        profile: null,
-        projects: [],
-        skills: [],
-        experience: [],
-        education: []
-      });
       setLoading(false);
       return;
     }
 
     try {
-      // Execute all Supabase queries concurrently using Promise.allSettled for maximum resilience in Brave & Adblock browsers
+      // Execute all Supabase queries concurrently using Promise.allSettled for maximum resilience
       const results = await Promise.allSettled([
         supabase.from('profile').select('*'),
         supabase.from('projects').select('*'),
@@ -131,26 +229,11 @@ export function useSupabaseData() {
 
       const [profileRes, projectsRes, skillsRes, experienceRes, educationRes] = results;
 
-      if (profileRes.status === 'fulfilled' && profileRes.value?.error) {
-        console.warn("⚠️ [Supabase Profile Table Error]:", profileRes.value.error);
-      }
-      if (projectsRes.status === 'fulfilled' && projectsRes.value?.error) {
-        console.warn("⚠️ [Supabase Projects Table Error]:", projectsRes.value.error);
-      }
-      if (skillsRes.status === 'fulfilled' && skillsRes.value?.error) {
-        console.warn("⚠️ [Supabase Skills Table Error]:", skillsRes.value.error);
-      }
-      if (experienceRes.status === 'fulfilled' && experienceRes.value?.error) {
-        console.warn("⚠️ [Supabase Experience Table Error]:", experienceRes.value.error);
-      }
-
       let rawProfile = null;
       if (profileRes.status === 'fulfilled' && Array.isArray(profileRes.value?.data) && profileRes.value.data.length > 0) {
-        // Take the latest profile row
         const rows = profileRes.value.data;
         rawProfile = rows[rows.length - 1];
       } else {
-        // Fallback check for 'profiles' table if 'profile' is empty or errored
         try {
           const profilesRes = await supabase.from('profiles').select('*');
           if (profilesRes.data && profilesRes.data.length > 0) {
@@ -161,7 +244,6 @@ export function useSupabaseData() {
         }
       }
 
-      // Raw Projects with fallback check for 'project' table
       let rawProjects = projectsRes.status === 'fulfilled' && Array.isArray(projectsRes.value?.data) ? projectsRes.value.data : [];
       if (rawProjects.length === 0) {
         try {
@@ -174,7 +256,6 @@ export function useSupabaseData() {
         }
       }
 
-      // Raw Skills with fallback check for 'skill' table
       let rawSkills = skillsRes.status === 'fulfilled' && Array.isArray(skillsRes.value?.data) ? skillsRes.value.data : [];
       if (rawSkills.length === 0) {
         try {
@@ -187,7 +268,6 @@ export function useSupabaseData() {
         }
       }
 
-      // Raw Experience with fallback checks across all common experience table names
       let rawExperience = experienceRes.status === 'fulfilled' && Array.isArray(experienceRes.value?.data) ? experienceRes.value.data : [];
       if (rawExperience.length === 0) {
         const altTables = ['experiences', 'work_experience', 'work_experiences', 'job_experience', 'work_history', 'experience_history', 'user_experience', 'experience_list'];
@@ -212,35 +292,20 @@ export function useSupabaseData() {
       const normExperience = normalizeExperience(rawExperience);
       const normEducation = normalizeEducation(rawEducation);
 
-      console.log("📊 [Supabase Live Data Loaded]", {
-        rawProfileReceived: rawProfile,
-        profile: normProfile,
-        projectsCount: normProjects.length,
-        skillsCount: normSkills.length,
-        experienceCount: normExperience.length,
-        educationCount: normEducation.length
-      });
-
-      setIsLiveDatabase(true);
-
-      setData({
+      const freshData = {
         profile: normProfile,
         projects: normProjects,
         skills: normSkills,
         experience: normExperience,
         education: normEducation
-      });
+      };
+
+      setCachedData(freshData);
+      setData(freshData);
+      setIsLiveDatabase(true);
     } catch (err) {
       console.error("Supabase fetch exception:", err);
-      setIsLiveDatabase(false);
       setErrorDetails(err.message || "Failed to query Supabase.");
-      setData({
-        profile: null,
-        projects: [],
-        skills: [],
-        experience: [],
-        education: []
-      });
     } finally {
       setLoading(false);
     }

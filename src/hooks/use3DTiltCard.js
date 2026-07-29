@@ -6,6 +6,7 @@ export function use3DTiltCard(maxTilt = 12, translateZ = 16) {
 
   const handleMouseMove = (e) => {
     if (!cardRef.current) return;
+    if (typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(pointer: coarse)').matches) return;
     const rect = cardRef.current.getBoundingClientRect();
     if (!rect.width || !rect.height) return;
 

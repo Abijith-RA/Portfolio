@@ -27,8 +27,12 @@ export default function NeuralBackground({ density = 'high', opacity = 0.8 }) {
 
     const mouse = { x: -1000, y: -1000, active: false };
 
-    // Calculate node count based on section density preset (Balanced & Clean)
+    // Calculate node count based on section density preset (Mobile-optimized to prevent GPU lag)
     const getTargetNodeCount = (w, h) => {
+      const isMobile = typeof window !== 'undefined' && (window.innerWidth <= 768 || ('ontouchstart' in window && window.innerWidth <= 1024));
+      if (isMobile) {
+        return density === 'high' ? 30 : 18;
+      }
       const area = (w > 0 && h > 0) ? w * h : 1000 * 600;
       if (density === 'high') {
         return Math.min(240, Math.max(120, Math.floor(area / 4200)));
